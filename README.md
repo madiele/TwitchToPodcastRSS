@@ -1,3 +1,15 @@
+based on [twitchRSS](https://github.com/lzeke0/TwitchRSS)
+
+this is a modified version of twitchRSS that converts a twitch channel in a full blown podcast
+
+## Diffrences from twitchRSS:
+- copletly converts the vods in a proper podcast RSS that can be listen directly inside the client (if they support audio only m3u8 playback, tested working on podcast addict), no need for the twitch app
+- added support for the new helix twitch API
+- no trascoding or server side stream processing is done, the vods are not downloaded on the server, this also means that that the episodes are only avalible until they get deleted from twitch (2 weeks - 2 months in general)
+
+
+# TwitchRSS original description:
+
 ## Twitch RSS Webapp for Google App Engine
 This project is a very small web application for serving RSS feed for broadcasts
 in Twitch. It fetches data from [Twitch API](https://dev.twitch.tv/docs) and caches in Memcache.
