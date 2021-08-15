@@ -1,5 +1,6 @@
 #
 # Copyright 2020 Laszlo Zeke
+# modifications: Copyright 2021 Mattia Di Eleuterio
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,11 +15,9 @@
 # limitations under the License.
 #
 
-from cachetools import cached, TTLCache, LRUCache
-from feedformatter import Feed
+from cachetools import cached, TTLCache 
 from feedgen.feed import FeedGenerator
 from flask import abort, Flask, request
-from io import BytesIO
 from os import environ
 import datetime
 import gzip
@@ -35,6 +34,7 @@ VOD_URL_TEMPLATE = 'https://api.twitch.tv/helix/videos?user_id=%s&type=all'
 USERID_URL_TEMPLATE = 'https://api.twitch.tv/helix/users?login=%s'
 VODCACHE_LIFETIME = 10 * 60
 USERIDCACHE_LIFETIME = 24 * 60 * 60
+VODURLSCACHE_LIFETIME = 24 * 60 * 60
 CHANNEL_FILTER = re.compile("^[a-zA-Z0-9_]{2,25}$")
 TWITCH_CLIENT_ID = environ.get("TWITCH_CLIENT_ID")
 TWITCH_SECRET = environ.get("TWITCH_SECRET")
@@ -56,6 +56,7 @@ def authorize():
 
     if (TWITCH_OAUTH_EXPIRE_EPOCH >= round(time.time())):
         return
+    logging.debug("requesting a new oauth token")
     data = {
         'client_id': TWITCH_CLIENT_ID,
         'client_secret': TWITCH_SECRET,
@@ -70,7 +71,7 @@ def authorize():
             r = json.loads(result.read().decode("utf-8"))
             TWITCH_OAUTH_TOKEN = r['access_token']
             TWITCH_OAUTH_EXPIRE_EPOCH = int(r['expires_in']) + round(time.time())
-            logging.info("oauth token aquired")
+            logging.debug("oauth token aquired")
             return
         except Exception as e:
             logging.warning("Fetch exception caught: %s" % e)
@@ -78,7 +79,7 @@ def authorize():
     abort(503)
 
 
-@cached(cache=TTLCache(maxsize=3000, ttl=USERIDCACHE_LIFETIME))
+@cached(cache=TTLCache(maxsize=3000, ttl=VODURLSCACHE_LIFETIME))
 def get_audiostream_url(vod_url):
     # sanitize the url from illegal characters
     vod_url = urllib.parse.quote(vod_url, safe='/:')
@@ -189,7 +190,7 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
     try:
         if vods:
             for vod in vods:
-                logging.info("processing vod:")
+                logging.debug("processing vod:" + vod['id'])
                 item = feed.add_entry()
                 #if vod["status"] == "recording":
                 #    if not add_live:
@@ -220,10 +221,10 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
         logging.warning('Issue with json: %s\nException: %s' % (vods, e))
         abort(404)
 
-    logging.info("all vods processed")
+    logging.debug("all vods processed")
     return feed.atom_str()
 
 
 # For debug
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=8080, debug=True)
+    app.run(host='127.0.0.1', port=8081, debug=True)

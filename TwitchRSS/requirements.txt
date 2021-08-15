@@ -30,5 +30,5 @@ urllib3==1.25.8
 webencodings==0.5.1
 Werkzeug==1.0.1
 streamlink>=2.3.0
-feedgen
-pytz
+feedgen==0.9.0
+pytz==2019.3
