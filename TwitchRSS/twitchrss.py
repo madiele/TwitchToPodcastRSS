@@ -179,7 +179,7 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
 
     # Set the feed/channel level properties
     feed.image(url=icon)
-    feed.id("https://twitchrss.appspot.com/")
+    feed.id("https://github.com/madiele/TwitchToPodcastRSS")
     feed.title("%s's Twitch video RSS" % display_name)
     feed.link(href='https://twitchrss.appspot.com/', rel='self')
     feed.author(name="Twitch RSS Generated")
