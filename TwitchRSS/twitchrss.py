@@ -166,7 +166,6 @@ def extract_userid(user_info):
     # Get the first id in the list
     userid = user_info['id']
     username = user_info['display_name']
-    logging.info(user_info)
     icon = user_info['profile_image_url']
     if username and userid:
         return username, userid, icon
@@ -191,7 +190,6 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
         if vods:
             for vod in vods:
                 logging.info("processing vod:")
-                logging.info(vod)
                 item = feed.add_entry()
                 #if vod["status"] == "recording":
                 #    if not add_live:
