@@ -80,10 +80,13 @@ def authorize():
 
 @cached(cache=TTLCache(maxsize=3000, ttl=USERIDCACHE_LIFETIME))
 def get_audiostream_url(vod_url):
-    p = subprocess.Popen("streamlink " + vod_url + " audio --stream-url", stdout=subprocess.PIPE, shell=True)
+    # sanitize the url from illegal characters
+    vod_url = urllib.parse.quote(vod_url, safe='/:')
+    command = ['streamlink', vod_url, "audio", "--stream-url"]
+    p = subprocess.Popen(command, stdout=subprocess.PIPE, shell=False)
     out, err= p.communicate() 
     if p.returncode != 0:
-        raise Exception("streamlink returned an error:\nstdout:\n" + out + "\nstderr:\n" + err)
+        raise Exception("streamlink returned an error:" + out.decode() +"\n\n MAKE SURE YOU RUN THE LATEST VERSION OF STREAMLINK")
     return out.decode().rstrip("\n")
 
     
