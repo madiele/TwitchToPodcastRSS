@@ -19,6 +19,7 @@ from cachetools import cached, TTLCache
 from feedgen.feed import FeedGenerator
 from flask import abort, Flask, request
 from os import environ
+from ratelimit import limits, sleep_and_retry
 import datetime
 import gzip
 import json
@@ -139,6 +140,8 @@ def fetch_vods(channel_id):
     return fetch_json(channel_id, VOD_URL_TEMPLATE)
 
 
+@sleep_and_retry
+@limits(calls=800, period=60)
 def fetch_json(id, url_template):
     authorize()
     url = url_template % id

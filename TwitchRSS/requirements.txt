@@ -32,3 +32,4 @@ Werkzeug==1.0.1
 streamlink>=2.3.0
 feedgen==0.9.0
 pytz==2019.3
+ratelimit==2.2.1
