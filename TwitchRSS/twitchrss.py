@@ -211,6 +211,7 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                 item.description(description)
                 date = datetime.datetime.strptime(vod['created_at'], '%Y-%m-%dT%H:%M:%SZ')
                 item.pubDate(pytz.utc.localize(date))
+                item.updated(pytz.utc.localize(date))
                 guid = vod['id']
                 #if vod["status"] == "recording":  # To show a different news item when recording is over
                     #guid += "_live"
