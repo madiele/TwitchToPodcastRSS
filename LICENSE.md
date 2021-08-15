@@ -1,6 +1,5 @@
-modifications: Copyright 2021 Mattia Di Eleuterio
-
 Copyright 2015 Laszlo Zeke
+
 modifications: Copyright 2021 Mattia Di Eleuterio
 
 Licensed under the Apache License, Version 2.0 (the "License");
