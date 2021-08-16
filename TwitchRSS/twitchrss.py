@@ -179,7 +179,9 @@ def extract_userid(user_info):
 
 
 def construct_rss(channel_name, vods, display_name, icon, add_live=True):
+    logging.debug("processing channel: " + channel_name)
     feed = FeedGenerator()
+    feed.load_extension('podcast')
 
     # Set the feed/channel level properties
     feed.image(url=icon)
@@ -188,12 +190,17 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
     feed.link(href='https://twitchrss.appspot.com/', rel='self')
     feed.author(name="Twitch RSS Generated")
     feed.description("The RSS Feed of %s's videos on Twitch" % display_name)
-
+    feed.podcast.itunes_author("Twitch RSS Generated")
+    feed.podcast.itunes_complete(False)
+    feed.podcast.itunes_explicit('no')
+    feed.podcast.itunes_image(icon)
+    feed.podcast.itunes_summary("The RSS Feed of %s's videos on Twitch" % display_name) 
     # Create an item
     try:
         if vods:
             for vod in vods:
                 logging.debug("processing vod:" + vod['id'])
+                logging.debug(vod)
                 item = feed.add_entry()
                 #if vod["status"] == "recording":
                 #    if not add_live:
@@ -207,13 +214,18 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                 #item.category(vod['type'])
                 item.enclosure(get_audiostream_url(link), type='audio/mpeg')
                 item.link(href=link, rel="related")
-                description = "<a href=\"%s\"><img src=\"%s\" /></a>" % (link, vod['thumbnail_url'].replace("%{width}", "512").replace("%{height}","288"))
+                thumb = vod['thumbnail_url'].replace("%{width}", "512").replace("%{height}","288")
+                description = "<a href=\"%s\"><img src=\"%s\" /></a>" % (link, thumb)
                 #if vod.get('game'):
                     #description += "<br/>" + vod['game']
                 if vod['description']:
                     description += "<br/>" + vod['description']
                 item.description(description)
                 date = datetime.datetime.strptime(vod['created_at'], '%Y-%m-%dT%H:%M:%SZ')
+                item.podcast.itunes_duration(re.sub('[hm]',':', vod['duration']).replace('s',''))
+                item.podcast.itunes_author(channel_name)
+                item.podcast.itunes_image(thumb)
+
                 item.pubDate(pytz.utc.localize(date))
                 item.updated(pytz.utc.localize(date))
                 guid = vod['id']
@@ -225,7 +237,7 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
         abort(404)
 
     logging.debug("all vods processed")
-    return feed.atom_str()
+    return feed.rss_str()
 
 
 # For debug
