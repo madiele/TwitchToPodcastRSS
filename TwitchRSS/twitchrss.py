@@ -224,7 +224,8 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                 date = datetime.datetime.strptime(vod['created_at'], '%Y-%m-%dT%H:%M:%SZ')
                 item.podcast.itunes_duration(re.sub('[hm]',':', vod['duration']).replace('s',''))
                 item.podcast.itunes_author(channel_name)
-                item.podcast.itunes_image(thumb)
+                if (thumb.endswith('.jpg') or thumb.endswith('.png')):
+                    item.podcast.itunes_image(thumb)
 
                 item.pubDate(pytz.utc.localize(date))
                 item.updated(pytz.utc.localize(date))
@@ -242,4 +243,4 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
 
 # For debug
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=8080, debug=True)
+    app.run(host='127.0.0.1', port=8081, debug=True)
