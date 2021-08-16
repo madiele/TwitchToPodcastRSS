@@ -10,6 +10,17 @@ this is a modified version of twitchRSS that converts a twitch channel in a full
 
 when you host this just add /vod/channelName to your server path and an RSS will be generated
 
+## install with docker
+be sure to get your SECRET and CLIENT ID from twitch
+https://dev.twitch.tv/console
+
+then run those commands (change the stuff inside <_> with your data)
+
+`git clone https://github.com/madiele/TwitchToPodcastRSS.git`
+`cd TwitchToPodcastRSS`
+`docker build -t TwitchToPodcastRSS .`
+`sudo docker run --restart always -p <PORT>:80 -e TWITCH_SECRET="<YOUR_SECRET>" -e TWITCH_CLIENT_ID="<YOUR_CLIENT_ID>" TwitchToPodcastRSS`
+
 # TwitchRSS original description:
 
 ## Twitch RSS Webapp for Google App Engine
