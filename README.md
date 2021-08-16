@@ -17,8 +17,11 @@ https://dev.twitch.tv/console
 then run those commands (change the stuff inside <_> with your data)
 
 `git clone https://github.com/madiele/TwitchToPodcastRSS.git`
+
 `cd TwitchToPodcastRSS`
+
 `docker build -t TwitchToPodcastRSS .`
+
 `sudo docker run --restart always -p <PORT>:80 -e TWITCH_SECRET="<YOUR_SECRET>" -e TWITCH_CLIENT_ID="<YOUR_CLIENT_ID>" TwitchToPodcastRSS`
 
 # TwitchRSS original description:
