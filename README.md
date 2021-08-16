@@ -37,3 +37,5 @@ more tags and time zone in pubDate tag.~~ (moved to feedGenerator)
 
 ### About
 The project has been developed by László Zeke.
+Later modified by Mattia Di Eleuterio
+
