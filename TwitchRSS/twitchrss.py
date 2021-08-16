@@ -29,6 +29,7 @@ import re
 import subprocess
 import time
 import urllib
+import queue
 
 
 VOD_URL_TEMPLATE = 'https://api.twitch.tv/helix/videos?user_id=%s&type=all'
@@ -50,6 +51,7 @@ if not TWITCH_SECRET:
 
 
 app = Flask(__name__)
+streamUrl_queues = {}
 
 def authorize():
     global TWITCH_OAUTH_TOKEN
@@ -80,8 +82,12 @@ def authorize():
     abort(503)
 
 
+
 @cached(cache=TTLCache(maxsize=3000, ttl=VODURLSCACHE_LIFETIME))
 def get_audiostream_url(vod_url):
+
+    
+    
     # sanitize the url from illegal characters
     vod_url = urllib.parse.quote(vod_url, safe='/:')
     command = ['streamlink', vod_url, "audio", "--stream-url"]
@@ -212,7 +218,27 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                 link = vod['url']
                 item.title(vod['title'])
                 #item.category(vod['type'])
+
+                #prevent get_audiostream_url to be run concurrenty with the same paramenter
+
+                global streamUrl_queues
+                if not link in streamUrl_queues:
+                    q = streamUrl_queues[link] = queue.Queue()
+                else:
+                    q = streamUrl_queues[link]
+                q.put(link)
+                q.get()
+
                 item.enclosure(get_audiostream_url(link), type='audio/mpeg')
+
+                q.task_done()
+                q.join()
+                # possible race condition, but should be fine after join()
+                if (q.qsize == 0):
+                    del streamUrl_queues[link]
+
+
+                
                 item.link(href=link, rel="related")
                 thumb = vod['thumbnail_url'].replace("%{width}", "512").replace("%{height}","288")
                 description = "<a href=\"%s\"><img src=\"%s\" /></a>" % (link, thumb)
