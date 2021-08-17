@@ -11,4 +11,4 @@ RUN pip3 install -v lxml
 ADD . /
 WORKDIR /TwitchRSS
 RUN pip3 install --disable-pip-version-check wheel && pip3 install --disable-pip-version-check -r requirements.txt && pip3 cache purge 
-ENTRYPOINT ["gunicorn", "-b",  ":80", "-k", "gthread", "twitchrss:app"]
+ENTRYPOINT ["gunicorn", "-b",  ":80", "-w", "1", "--threads", "5", "-k", "gthread", "twitchrss:app"]
