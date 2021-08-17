@@ -31,7 +31,7 @@ https://hub.docker.com/r/madiele/twitch_to_podcast_rss/ (for linux arm64, amd64,
 images for raspberry pis are included  
 
 
-### use [docker-compose](https://docs.docker.com/compose/install/) with precompiled image (esiest)
+### use [docker-compose](https://docs.docker.com/compose/install/) with precompiled image (easiest)
 
 edit /docker-compose.yml with your PORT,SECRET and CLIENT_ID
 
