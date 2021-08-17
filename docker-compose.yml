@@ -1,0 +1,10 @@
+version: '3.3'
+services:
+    TwitchToPodcastRSS:
+        restart: always
+        ports:
+            - '<PORT>:80'
+        environment:
+            - TWITCH_SECRET=<YOUR_SECRET>
+            - TWITCH_CLIENT_ID=<YOUR_CLIENT_ID>
+        image: madiele/twitch_to_podcast_rss
