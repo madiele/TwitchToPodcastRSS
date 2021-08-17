@@ -91,7 +91,7 @@ def get_audiostream_url(vod_url):
     try:
         stream_url = streams(vod_url).get('audio').to_url() 
     except AttributeError as e:
-        logging.error("streamlink has returned an error:)
+        logging.error("streamlink has returned an error:")
         logging.error(e)
     return stream_url
 
