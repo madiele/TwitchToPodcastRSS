@@ -18,6 +18,8 @@ when you host this just add /vod/channelName to your server path and an RSS will
 
 example: myserver.com/vod/channelname
 
+just add the link to your podcast client
+
 ## install with docker
 before doing anything be sure to get your SECRET and CLIENT ID from twitch
 https://dev.twitch.tv/console
