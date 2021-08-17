@@ -40,6 +40,8 @@ edit `docker-compose.yml` with your PORT, SECRET and CLIENT_ID
 
 `nano TwitchToPodcastRSS`
 
+save and
+
 `sudo docker-compose up -d`
 
 ### pull the precompiled image from hub.docker.com
