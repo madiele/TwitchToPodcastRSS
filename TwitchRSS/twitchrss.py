@@ -1,4 +1,4 @@
-#
+
 # Copyright 2020 Laszlo Zeke
 # modifications: Copyright 2021 Mattia Di Eleuterio
 #
@@ -17,7 +17,7 @@
 
 from cachetools import cached, TTLCache 
 from feedgen.feed import FeedGenerator
-from flask import abort, Flask, request
+from flask import abort, Flask, request, render_template
 from os import environ
 from ratelimit import limits, sleep_and_retry
 from streamlink import streams
@@ -31,6 +31,7 @@ import re
 import subprocess
 import time
 import urllib
+
 
 
 VOD_URL_TEMPLATE = 'https://api.twitch.tv/helix/videos?user_id=%s&type=all'
@@ -108,6 +109,10 @@ def vodonly(channel):
         return get_inner(channel, add_live=False)
     else:
         abort(404)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 
 def get_inner(channel, add_live=True):

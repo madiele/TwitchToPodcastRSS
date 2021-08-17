@@ -1,0 +1,20 @@
+<html>
+<head>
+    <title>Twitch stream RSS generator</title>
+    </head>
+    <body>
+        <p>
+            Twitch stream  to podcast RSS generator
+        </p>
+        <p>
+            You can get RSS of broadcasts by subscribing to https://twitchrss.appspot.com/vod/&lt;channel name&gt;<br>
+	    <br>
+        </p>
+	<p>
+		<input type="text" placeholder="channel name here" name="" id="vod" value="">
+		<input type="button" value="generate feed" onclick="getElementById(&quot;link&quot;).href = &quot;vod/&quot; + getElementById(&quot;vod&quot;).value; getElementById(&quot;link&quot;).innerHTML = location.host + &quot;/vod/&quot; + getElementById(&quot;vod&quot;).value">
+		<br>
+		<a href="" id="link"></a>
+	</p>
+    
+</html>
