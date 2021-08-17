@@ -23,9 +23,7 @@ example: myserver.com/vod/channelname
 before doing anything be sure to get your SECRET and CLIENT ID from twitch
 https://dev.twitch.tv/console
 
-precompiled images are here
-
-https://hub.docker.com/r/madiele/twitch_to_podcast_rss/ (for linux arm64, amd64, arm/v7, i386)
+precompiled images are [here](https://hub.docker.com/r/madiele/twitch_to_podcast_rss/) for linux machines with arm64, amd64, arm/v7, i386 architectures
 
 images for raspberry pis are included  
 
