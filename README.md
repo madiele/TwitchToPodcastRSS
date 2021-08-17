@@ -44,6 +44,12 @@ save and
 
 `sudo docker-compose up -d`
 
+#### update
+
+run this inside the folder with `docker-compose.yml` inside
+
+`docker-compose pull  && docker-compose up -d`
+
 ### pull the precompiled image from hub.docker.com
   
   `docker pull madiele/twitch_to_podcast_rss:latest`
@@ -51,6 +57,8 @@ save and
 edit with PORT,SECRET and CLIENT_ID
 
   `sudo docker run -d --restart always -p <PORT>:80 -e TWITCH_SECRET="<YOUR_SECRET>" -e TWITCH_CLIENT_ID="<YOUR_CLIENT_ID>" madiele/twitch_to_podcast_rss:latest`
+  
+  to update kill and delete the running container and run the same commands
 
 ### build it yourself (this will take a while)
 
