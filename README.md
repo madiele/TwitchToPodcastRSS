@@ -11,8 +11,33 @@ this is a modified version of twitchRSS that converts a twitch channel in a full
 when you host this just add /vod/channelName to your server path and an RSS will be generated
 
 ## install with docker
-be sure to get your SECRET and CLIENT ID from twitch
+before doing anything be sure to get your SECRET and CLIENT ID from twitch
 https://dev.twitch.tv/console
+
+precompiled images are here
+
+https://hub.docker.com/r/madiele/twitch_to_podcast_rss/ (for linux arm64, amd64, arm/v7, i386)
+
+images for raspberry pis are included  
+
+
+### use [docker-compose](https://docs.docker.com/compose/install/) with precompiled image (esiest)
+
+edit /docker-compose.yml with your PORT,SECRET and CLIENT_ID
+
+`git clone https://github.com/madiele/TwitchToPodcastRSS.git`
+
+`cd TwitchToPodcastRSS`
+
+`sudo docker-compose up -d`
+
+### pull the precompiled image from hub.docker.com
+  
+  `docker pull madiele/twitch_to_podcast_rss:latest`
+  
+  `sudo docker run -d --restart always -p <PORT>:80 -e TWITCH_SECRET="<YOUR_SECRET>" -e TWITCH_CLIENT_ID="<YOUR_CLIENT_ID>" madiele/twitch_to_podcast_rss:latest`
+
+### build it yourself
 
 then run those commands (change the stuff inside <_> with your data)
 
@@ -22,7 +47,7 @@ then run those commands (change the stuff inside <_> with your data)
 
 `docker build -t TwitchToPodcastRSS .`
 
-`sudo docker run --restart always -p <PORT>:80 -e TWITCH_SECRET="<YOUR_SECRET>" -e TWITCH_CLIENT_ID="<YOUR_CLIENT_ID>" TwitchToPodcastRSS`
+`sudo docker run -d --restart always -p <PORT>:80 -e TWITCH_SECRET="<YOUR_SECRET>" -e TWITCH_CLIENT_ID="<YOUR_CLIENT_ID>" TwitchToPodcastRSS`
 
 # TwitchRSS original description:
 
