@@ -87,6 +87,7 @@ def authorize():
 
 @cached(cache=TTLCache(maxsize=3000, ttl=VODURLSCACHE_LIFETIME))
 def get_audiostream_url(vod_url):
+    stream_url = None
     try:
         stream_url = streams(vod_url).get('audio').to_url() 
     except AttributeError as e:
@@ -229,8 +230,8 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                     q = streamUrl_queues[link]
                 q.put(link)
                 q.get()
-
-                item.enclosure(get_audiostream_url(link), type='audio/mpeg')
+                if (stream_url = get_audiostream_url(link)):
+                    item.enclosure(stream_url, type='audio/mpeg')
 
                 q.task_done()
                 q.join()
