@@ -31,7 +31,7 @@ images for raspberry pis are included
 
 ### use [docker-compose](https://docs.docker.com/compose/install/) with precompiled image (easiest)
 
-edit /docker-compose.yml with your PORT,SECRET and CLIENT_ID
+edit `docker-compose.yml` with your PORT, SECRET and CLIENT_ID
 
 `git clone https://github.com/madiele/TwitchToPodcastRSS.git`
 
