@@ -20,16 +20,17 @@ from feedgen.feed import FeedGenerator
 from flask import abort, Flask, request
 from os import environ
 from ratelimit import limits, sleep_and_retry
+from streamlink import streams
 import datetime
 import gzip
 import json
 import logging
 import pytz
+import queue
 import re
 import subprocess
 import time
 import urllib
-import queue
 
 
 VOD_URL_TEMPLATE = 'https://api.twitch.tv/helix/videos?user_id=%s&type=all'
@@ -85,17 +86,12 @@ def authorize():
 
 @cached(cache=TTLCache(maxsize=3000, ttl=VODURLSCACHE_LIFETIME))
 def get_audiostream_url(vod_url):
-
-    
-    
-    # sanitize the url from illegal characters
-    vod_url = urllib.parse.quote(vod_url, safe='/:')
-    command = ['streamlink', vod_url, "audio", "--stream-url"]
-    p = subprocess.Popen(command, stdout=subprocess.PIPE, shell=False)
-    out, err= p.communicate() 
-    if p.returncode != 0:
-        raise Exception("streamlink returned an error:" + out.decode() +"\n\n MAKE SURE YOU RUN THE LATEST VERSION OF STREAMLINK")
-    return out.decode().rstrip("\n")
+    try:
+        stream_url = streams(vod_url).get('audio').to_url() 
+    except AttributeError as e:
+        logging.error("streamlink has returned an error for the given vod: "+stream_url)
+        logging.error(e)
+    return stream_url
 
     
 @app.route('/vod/<string:channel>', methods=['GET', 'HEAD'])
