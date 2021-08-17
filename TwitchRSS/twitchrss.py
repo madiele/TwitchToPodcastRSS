@@ -20,7 +20,7 @@ from feedgen.feed import FeedGenerator
 from flask import abort, Flask, request, render_template
 from os import environ
 from ratelimit import limits, sleep_and_retry
-from streamlink import streams
+from streamlink import Streamlink
 import datetime
 import gzip
 import json
@@ -54,6 +54,8 @@ if not TWITCH_SECRET:
 
 app = Flask(__name__)
 streamUrl_queues = {}
+streamlink_session = Streamlink(options=None)
+
 
 def authorize():
     global TWITCH_OAUTH_TOKEN
@@ -89,7 +91,7 @@ def authorize():
 def get_audiostream_url(vod_url):
     stream_url = None
     try:
-        stream_url = streams(vod_url).get('audio').to_url() 
+        stream_url = streamlink_session.streams(vod_url).get('audio').to_url()
     except AttributeError as e:
         logging.error("streamlink has returned an error:")
         logging.error(e)
