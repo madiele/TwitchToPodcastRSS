@@ -48,7 +48,7 @@ save and
 
 #### update
 
-run this inside the folder with `docker-compose.yml` inside
+run this inside the folder with `docker-compose.yml`
 
 `sudo docker-compose pull  && docker-compose up -d`
 
