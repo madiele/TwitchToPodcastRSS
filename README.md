@@ -40,13 +40,13 @@ images for raspberry pis are included
 
 edit `docker-compose.yml` with your PORT, SECRET and CLIENT_ID
 
-`nano TwitchToPodcastRSS`
+`nano docker-compose.yml`
 
 save and
 
 `sudo docker-compose up -d`
 
-#### update
+#### when you want to update:
 
 run this inside the folder with `docker-compose.yml`
 
