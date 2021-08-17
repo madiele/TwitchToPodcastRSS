@@ -1,12 +1,18 @@
 based on [twitchRSS](https://github.com/lzeke0/TwitchRSS)
 
-this is a modified version of twitchRSS that converts a twitch channel in a full blown podcast
+### TwitchToPodcastRSS
 
-## Diffrences from twitchRSS:
+converts a twitch channel in a full blown podcast
+
+## Features:
 - copletly converts the vods in a proper podcast RSS that can be listen directly inside the client (if they support audio only m3u8 playback, tested working on podcast addict), no need for the twitch app
-- added support for the new helix twitch API
+- the descripion has a clickable image that opens the vod in the twitch app
+- support for the new helix twitch API
 - no trascoding or server side stream processing is done, the vods are not downloaded on the server, this also means that that the episodes are only avalible until they get deleted from twitch (2 weeks - 2 months in general)
 - dropped support for live episodes: /vod/channel and /vodonly/channel do the same thing and will ignore live episodes
+- 
+## Known issues:
+- first time you ask for a feed it will take up to a minute for the request to go trhough, this is due to technical limitations 
 
 when you host this just add /vod/channelName to your server path and an RSS will be generated
 
