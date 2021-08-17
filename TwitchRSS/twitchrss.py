@@ -230,7 +230,8 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                     q = streamUrl_queues[link]
                 q.put(link)
                 q.get()
-                if (stream_url = get_audiostream_url(link)):
+                stream_url = get_audiostream_url(link)
+                if (stream_url):
                     item.enclosure(stream_url, type='audio/mpeg')
 
                 q.task_done()
