@@ -9,7 +9,6 @@ converts a twitch channel in a full blown podcast
 - the descripion has a clickable image that opens the vod in the twitch app
 - support for the new helix twitch API
 - no trascoding or server side stream processing is done, the vods are not downloaded on the server, this also means that that the episodes are only avalible until they get deleted from twitch (2 weeks - 2 months in general)
-- dropped support for live episodes: /vod/channel and /vodonly/channel do the same thing and will ignore live episodes
 
 
 ## Known issues:
