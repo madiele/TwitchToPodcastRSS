@@ -43,18 +43,20 @@ edit /docker-compose.yml with your PORT,SECRET and CLIENT_ID
 ### pull the precompiled image from hub.docker.com
   
   `docker pull madiele/twitch_to_podcast_rss:latest`
-  
+
+edit with PORT,SECRET and CLIENT_ID
+
   `sudo docker run -d --restart always -p <PORT>:80 -e TWITCH_SECRET="<YOUR_SECRET>" -e TWITCH_CLIENT_ID="<YOUR_CLIENT_ID>" madiele/twitch_to_podcast_rss:latest`
 
-### build it yourself
-
-then run those commands (change the stuff inside <_> with your data)
+### build it yourself (this will take a while)
 
 `git clone https://github.com/madiele/TwitchToPodcastRSS.git`
 
 `cd TwitchToPodcastRSS`
 
 `docker build -t TwitchToPodcastRSS .`
+
+edit with PORT,SECRET and CLIENT_ID
 
 `sudo docker run -d --restart always -p <PORT>:80 -e TWITCH_SECRET="<YOUR_SECRET>" -e TWITCH_CLIENT_ID="<YOUR_CLIENT_ID>" TwitchToPodcastRSS`
 
