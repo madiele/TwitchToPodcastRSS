@@ -48,7 +48,7 @@ save and
 
 run this inside the folder with `docker-compose.yml` inside
 
-`docker-compose pull  && docker-compose up -d`
+`sudo docker-compose pull  && docker-compose up -d`
 
 ### pull the precompiled image from hub.docker.com
   
