@@ -15,6 +15,7 @@ converts a twitch channel in a full blown podcast
 ## Known issues:
 - first time you ask for a feed it will take up to a minute for the request to go trhough, this is due to technical limitations 
 
+## Usage
 when you host this just add /vod/channelName to your server path and an RSS will be generated
 
 example: myserver.com/vod/channelname
