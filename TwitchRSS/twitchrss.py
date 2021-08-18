@@ -21,12 +21,13 @@ from flask import abort, Flask, request, render_template
 from os import environ
 from ratelimit import limits, sleep_and_retry
 from streamlink import Streamlink
+from streamlink.exceptions import PluginError
+from threading import Lock, RLock
 import datetime
 import gzip
 import json
 import logging
 import pytz
-import queue
 import re
 import subprocess
 import time
@@ -53,8 +54,13 @@ if not TWITCH_SECRET:
 
 
 app = Flask(__name__)
-streamUrl_queues = {}
 streamlink_session = Streamlink(options=None)
+streamUrl_queues = {}
+cache_locks = {
+        'fetch_userid': Lock(),
+        'fetch_vods': Lock(),
+        'get_audiostream_url': Lock(),
+        }
 
 
 def authorize():
@@ -87,12 +93,13 @@ def authorize():
 
 
 
-@cached(cache=TTLCache(maxsize=3000, ttl=VODURLSCACHE_LIFETIME))
+@cached(cache=TTLCache(maxsize=3000, ttl=VODURLSCACHE_LIFETIME), lock=cache_locks['get_audiostream_url'])
 def get_audiostream_url(vod_url):
+    logging.debug("looking up audio url for " + vod_url)
     stream_url = None
     try:
         stream_url = streamlink_session.streams(vod_url).get('audio').to_url()
-    except AttributeError as e:
+    except (AttributeError, PluginError) as e:
         logging.error("streamlink has returned an error:")
         logging.error(e)
     return stream_url
@@ -140,12 +147,12 @@ def get_inner(channel, add_live=True):
     return rss_data, headers
 
 
-@cached(cache=TTLCache(maxsize=3000, ttl=USERIDCACHE_LIFETIME))
+@cached(cache=TTLCache(maxsize=3000, ttl=USERIDCACHE_LIFETIME), lock=cache_locks['fetch_userid'])
 def fetch_userid(channel_name):
     return fetch_json(channel_name, USERID_URL_TEMPLATE)
 
 
-@cached(cache=TTLCache(maxsize=500, ttl=VODCACHE_LIFETIME))
+@cached(cache=TTLCache(maxsize=500, ttl=VODCACHE_LIFETIME), lock=cache_locks['fetch_vods'])
 def fetch_vods(channel_id):
     return fetch_json(channel_id, VOD_URL_TEMPLATE)
 
@@ -173,6 +180,7 @@ def fetch_json(id, url_template):
         except Exception as e:
             logging.warning("Fetch exception caught: %s" % e)
             retries += 1
+    logging.error("max retries reached, could not get resource, id: " + id)
     abort(503)
 
 
@@ -224,26 +232,28 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                 #item.category(vod['type'])
 
                 #prevent get_audiostream_url to be run concurrenty with the same paramenter
+                #this way the next hit on get_audiostream_url will use the cache instead
 
                 global streamUrl_queues
                 if not link in streamUrl_queues:
-                    q = streamUrl_queues[link] = queue.Queue()
+                    q = streamUrl_queues[link] = {'lock': RLock(), 'count': 0}
                 else:
                     q = streamUrl_queues[link]
-                q.put(link)
-                q.get()
+
+                q['count'] = q['count'] + 1
+                q['lock'].acquire()
+
                 stream_url = get_audiostream_url(link)
+
+                q['count'] = q['count'] - 1
+                if q['count'] == 0:
+                    del streamUrl_queues[link]
+
+                q['lock'].release()
+
                 if (stream_url):
                     item.enclosure(stream_url, type='audio/mpeg')
 
-                q.task_done()
-                q.join()
-                # possible race condition, but should be fine after join()
-                if (q.qsize == 0):
-                    del streamUrl_queues[link]
-
-
-                
                 item.link(href=link, rel="related")
                 thumb = vod['thumbnail_url'].replace("%{width}", "512").replace("%{height}","288")
                 description = "<a href=\"%s\"><img src=\"%s\" /></a>" % (link, thumb)
