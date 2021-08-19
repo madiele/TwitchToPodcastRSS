@@ -22,7 +22,7 @@ example: `myserver.com/vod/channelname`
 
 just add the link to your podcast client
 
-unfinished streams are not included, but if you want them to just add `?include_streaming=True` the the feed URL
+unfinished streams are not included, but if you want them to just add `?include_streaming=True` to the feed URL
 
 example: `myserver.com/vod/channelname?include_streaming=True`
 
