@@ -373,6 +373,7 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                 except NoAudioStreamException as e:
                     description += "TwitchToPodcastRSS ERROR: could not fetch an audio stream for this vod,"
                     description += "try refreshing the RSS feed later"
+                    stream_url = None
 
 
 
