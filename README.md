@@ -14,7 +14,6 @@ converts a twitch channel in a full blown podcast
 
 ## Known issues:
 - first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generaly done in backgroud by the podcast clients this should not be a huge limitation, just give it time
-- if the vod is unfinished due to the streamer still being online when your clients updates the duration told by the app will smaller than the finished stream duration
 
 ## Usage
 when you host this just add /vod/channelName to your server path and an RSS will be generated
@@ -22,6 +21,10 @@ when you host this just add /vod/channelName to your server path and an RSS will
 example: myserver.com/vod/channelname
 
 just add the link to your podcast client
+
+unfinished streams are not included, but if you want them to just add `?include_streaming=True` the the feed URL
+
+example: `myserver.com/vod/channelname?include_streaming=True`
 
 ## install with docker
 before doing anything be sure to get your SECRET and CLIENT ID from twitch
