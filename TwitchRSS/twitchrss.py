@@ -120,9 +120,7 @@ def get_audiostream_url(vod_url):
 
     Args:
       vod_url: link to the vod
-
     Returns: the audio stream url
-
 
     """
     logging.debug("looking up audio url for " + vod_url)
@@ -139,10 +137,9 @@ def vod(channel):
     """process request to /vod/.
 
     Args:
-      channel:
+      channel: Returns: the http response
 
-    Returns: the http response
-
+    Returns:
 
     """
 
@@ -156,10 +153,9 @@ def vodonly(channel):
     """process request to /vodonly/.
 
     Args:
-      channel:
+      channel: Returns: the http response
 
-    Returns: the http response
-
+    Returns:
 
     """
     if CHANNEL_FILTER.match(channel):
@@ -178,14 +174,10 @@ def process_channel(channel, request_args):
 
     Args:
       channel: the channel string given in the request
-      add_live: NOT YET REIMPLEMENTED (Default value = True)
+      request_args: the arguments of the http request
 
     Returns:
-    (
-        rss_data: the fully formed rss feed
-        headers: the headers for the response
-    )
-
+      rss_data: the fully formed rss feed
 
     """
     include_streaming = True if request_args.get("include_streaming", "False") == "True" else False
@@ -219,7 +211,6 @@ def fetch_channel(channel_name):
 
     Returns: the JSON formatted channel info
 
-
     """
     return fetch_json(channel_name, USERID_URL_TEMPLATE)
 
@@ -230,18 +221,29 @@ def fetch_vods(channel_id):
 
     Args:
       channel_id: the unique identifier of the channel
-
     Returns: the JSON formatted vods list
-
 
     """
     return fetch_json(channel_id, VOD_URL_TEMPLATE)
 
 @cached(cache=TTLCache(maxsize=500, ttl=VODCACHE_LIFETIME), lock=cache_locks['fetch_streams'])
 def fetch_streams(user_id):
+    """fetches the JSON formatted list of streams for the give user
+
+    Args:
+      user_id: the unique identifier of the channel
+
+    Returns: the JSON formatted vods list
+
+    """
     return fetch_json(user_id, STREAMS_URL_TEMPLATE)
 
 def getAuthHeaders():
+    """gets the headers for the twitch API and requests a new oauth token if needed
+
+    Returns: a dict containing auth data
+
+    """
     authorize()
     return {
         'Authorization': 'Bearer '+TWITCH_OAUTH_TOKEN,
@@ -256,11 +258,9 @@ def fetch_json(id, url_template):
 
     Args:
       id: the unique identifier of your request
-      url_template: the template for the request where id will be replaced
-    example: 'https://api.twitch.tv/helix/videos?user_id=%s&type=all'
+      url_template: the template for the request where id will be replaced example: 'https://api.twitch.tv/helix/videos?user_id=%s&type=all'
 
     Returns: the JSON response for the request
-
 
     """
     url = url_template % id
@@ -287,14 +287,12 @@ def construct_rss(user, vods, streams, includeStreams=False):
     """returns the RSS for the given inputs.
 
     Args:
-      channel_name: username of the channel
-      vods: parsed list of vods given by twitch
-      display_name: the name channel
-      icon: the icon url for the channel
-      add_live: NOT REIMPLEMENTED YET (Default value = True)
+      user: the user dict
+      vods: the vod dict
+      streams: the streams dict
+      includeStreams: True if the streams should be included (Default value = False)
 
     Returns: fully formatted RSS string
-
 
     """
 
