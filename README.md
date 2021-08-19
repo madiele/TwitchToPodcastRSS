@@ -18,7 +18,7 @@ converts a twitch channel in a full blown podcast
 ## Usage
 when you host this just add /vod/channelName to your server path and an RSS will be generated
 
-example: myserver.com/vod/channelname
+example: `myserver.com/vod/channelname`
 
 just add the link to your podcast client
 
