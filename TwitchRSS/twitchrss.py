@@ -23,6 +23,7 @@ from ratelimit import limits, sleep_and_retry
 from streamlink import Streamlink
 from streamlink.exceptions import PluginError
 from threading import Lock, RLock
+from html import escape as HTMLescape
 import datetime
 import gzip
 import json
@@ -45,7 +46,12 @@ TWITCH_CLIENT_ID = environ.get("TWITCH_CLIENT_ID")
 TWITCH_SECRET = environ.get("TWITCH_SECRET")
 TWITCH_OAUTH_TOKEN = ""
 TWITCH_OAUTH_EXPIRE_EPOCH = 0
-logging.basicConfig(level=logging.DEBUG if environ.get('DEBUG') else logging.INFO)
+logging.basicConfig(
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=logging.DEBUG if environ.get('DEBUG') else logging.INFO,
+        datefmt='%Y-%m-%d %H:%M:%S'
+        )
+
 
 if not TWITCH_CLIENT_ID:
     raise Exception("Twitch API client id env variable is not set.")
@@ -89,19 +95,22 @@ def authorize():
         except Exception as e:
             logging.warning("Fetch exception caught: %s" % e)
             retries += 1
+    logging.error("could not get oauth token from twitch")
     abort(503)
 
 
+class NoAudioStreamException(Exception):
+    pass
 
 @cached(cache=TTLCache(maxsize=3000, ttl=VODURLSCACHE_LIFETIME), lock=cache_locks['get_audiostream_url'])
 def get_audiostream_url(vod_url):
     logging.debug("looking up audio url for " + vod_url)
-    stream_url = None
     try:
         stream_url = streamlink_session.streams(vod_url).get('audio').to_url()
     except (AttributeError, PluginError) as e:
         logging.error("streamlink has returned an error:")
         logging.error(e)
+        raise NoAudioStreamException
     return stream_url
 
     
@@ -186,9 +195,14 @@ def fetch_json(id, url_template):
 
 def extract_userid(user_info):
     # Get the first id in the list
-    userid = user_info['id']
-    username = user_info['display_name']
-    icon = user_info['profile_image_url']
+    try:
+        userid = user_info['id']
+        username = user_info['display_name']
+        icon = user_info['profile_image_url']
+    except KeyError as e:
+        logging.error("error while processing user_info: " + user_info)
+        logging.error(e)
+        abort(500)
     if username and userid:
         return username, userid, icon
     else:
@@ -214,9 +228,9 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
     feed.podcast.itunes_image(icon)
     feed.podcast.itunes_summary("The RSS Feed of %s's videos on Twitch" % display_name) 
     # Create an item
-    try:
-        if vods:
-            for vod in vods:
+    if vods:
+        for vod in vods:
+            try:
                 logging.debug("processing vod:" + vod['id'])
                 logging.debug(vod)
                 item = feed.add_entry()
@@ -231,6 +245,14 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                 item.title(vod['title'])
                 #item.category(vod['type'])
 
+                thumb = vod['thumbnail_url'].replace("%{width}", "512").replace("%{height}","288")
+
+                description = "<a href=\"%s\"><p>%s</p><img src=\"%s\" /></a>" % (link, HTMLescape(vod['title']), thumb)
+                #if vod.get('game'):
+                    #description += "<br/>" + vod['game']
+                if vod['description']:
+                    description += "<br/>" + vod['description']
+
                 #prevent get_audiostream_url to be run concurrenty with the same paramenter
                 #this way the next hit on get_audiostream_url will use the cache instead
 
@@ -243,7 +265,13 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                 q['count'] = q['count'] + 1
                 q['lock'].acquire()
 
-                stream_url = get_audiostream_url(link)
+                try:
+                    stream_url = get_audiostream_url(link)
+                except NoAudioStreamException as e:
+                    description += "TwitchToPodcastRSS ERROR: could not fetch an audio stream for this vod,"
+                    description += "try refreshing the RSS feed later"
+
+
 
                 q['count'] = q['count'] - 1
                 if q['count'] == 0:
@@ -255,12 +283,6 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                     item.enclosure(stream_url, type='audio/mpeg')
 
                 item.link(href=link, rel="related")
-                thumb = vod['thumbnail_url'].replace("%{width}", "512").replace("%{height}","288")
-                description = "<a href=\"%s\"><img src=\"%s\" /></a>" % (link, thumb)
-                #if vod.get('game'):
-                    #description += "<br/>" + vod['game']
-                if vod['description']:
-                    description += "<br/>" + vod['description']
                 item.description(description)
                 date = datetime.datetime.strptime(vod['created_at'], '%Y-%m-%dT%H:%M:%SZ')
                 item.podcast.itunes_duration(re.sub('[hm]',':', vod['duration']).replace('s',''))
@@ -274,9 +296,9 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
                 #if vod["status"] == "recording":  # To show a different news item when recording is over
                     #guid += "_live"
                 item.guid(guid)
-    except KeyError as e:
-        logging.warning('Issue with json: %s\nException: %s' % (vods, e))
-        abort(404)
+            except KeyError as e:
+                logging.warning('Issue with json while processing vod: %s\n\nException: %s' % (vod, e))
+                feed.remove_entry(item)
 
     logging.debug("all vods processed")
     return feed.rss_str()
