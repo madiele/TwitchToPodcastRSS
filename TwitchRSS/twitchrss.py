@@ -1,3 +1,9 @@
+"""
+File: twitchrss.py
+Author: Laszlo Zeke and Mattia Di Eleuterio
+Github: https://github.com/madiele/TwitchToPodcastRSS
+Description: webserver that converts a twitch channel into a podcast feed
+"""
 
 # Copyright 2020 Laszlo Zeke
 # modifications: Copyright 2021 Mattia Di Eleuterio
@@ -63,13 +69,15 @@ app = Flask(__name__)
 streamlink_session = Streamlink(options=None)
 streamUrl_queues = {}
 cache_locks = {
-        'fetch_userid': Lock(),
+        'fetch_channel': Lock(),
         'fetch_vods': Lock(),
         'get_audiostream_url': Lock(),
         }
 
 
 def authorize():
+    """updates the oauth token if expired."""
+
     global TWITCH_OAUTH_TOKEN
     global TWITCH_OAUTH_EXPIRE_EPOCH
 
@@ -98,12 +106,21 @@ def authorize():
     logging.error("could not get oauth token from twitch")
     abort(503)
 
-
 class NoAudioStreamException(Exception):
+    """NoAudioStreamException."""
     pass
 
 @cached(cache=TTLCache(maxsize=3000, ttl=VODURLSCACHE_LIFETIME), lock=cache_locks['get_audiostream_url'])
 def get_audiostream_url(vod_url):
+    """finds the audio-strem URL for the given link and returns it.
+
+    Args:
+      vod_url: link to the vod
+
+    Returns: the audio stream url
+
+    
+    """
     logging.debug("looking up audio url for " + vod_url)
     try:
         stream_url = streamlink_session.streams(vod_url).get('audio').to_url()
@@ -113,33 +130,64 @@ def get_audiostream_url(vod_url):
         raise NoAudioStreamException
     return stream_url
 
-    
 @app.route('/vod/<string:channel>', methods=['GET', 'HEAD'])
 def vod(channel):
+    """process request to /vod/.
+
+    Args:
+      channel: 
+
+    Returns: the http response
+
+    
+    """
     if CHANNEL_FILTER.match(channel):
-        return get_inner(channel)
+        return process_channel(channel)
     else:
         abort(404)
 
-
 @app.route('/vodonly/<string:channel>', methods=['GET', 'HEAD'])
 def vodonly(channel):
+    """process request to /vodonly/.
+
+    Args:
+      channel: 
+
+    Returns: the http response
+
+    
+    """
     if CHANNEL_FILTER.match(channel):
-        return get_inner(channel, add_live=False)
+        return process_channel(channel, add_live=False)
     else:
         abort(404)
 
 @app.route('/')
 def index():
+    """process request to the root."""
     return render_template('index.html')
 
 
-def get_inner(channel, add_live=True):
-    user_json = fetch_userid(channel)
+def process_channel(channel, add_live=True):
+    """process the given channel.
+
+    Args:
+      channel: the channel string given in the request
+      add_live: NOT YET REIMPLEMENTED (Default value = True)
+
+    Returns: 
+    (
+        rss_data: the fully formed rss feed
+        headers: the headers for the response
+    )
+
+    
+    """
+    user_json = fetch_channel(channel)
     if not user_json:
         abort(404)
 
-    (channel_display_name, channel_id, icon) = extract_userid(json.loads(user_json)['data'][0])
+    (channel_display_name, channel_id, icon) = extract_userinfo(json.loads(user_json)['data'][0])
 
     channel_json = fetch_vods(channel_id)
     if not channel_json:
@@ -156,19 +204,48 @@ def get_inner(channel, add_live=True):
     return rss_data, headers
 
 
-@cached(cache=TTLCache(maxsize=3000, ttl=USERIDCACHE_LIFETIME), lock=cache_locks['fetch_userid'])
-def fetch_userid(channel_name):
+@cached(cache=TTLCache(maxsize=3000, ttl=USERIDCACHE_LIFETIME), lock=cache_locks['fetch_channel'])
+def fetch_channel(channel_name):
+    """fetches the JSON for the given channel username.
+
+    Args:
+      channel_name: the channel name
+
+    Returns: the JSON formatted channel info
+
+    
+    """
     return fetch_json(channel_name, USERID_URL_TEMPLATE)
 
 
 @cached(cache=TTLCache(maxsize=500, ttl=VODCACHE_LIFETIME), lock=cache_locks['fetch_vods'])
 def fetch_vods(channel_id):
+    """fetches the JSON for the given channel username.
+
+    Args:
+      channel_id: the unique identifier of the channel
+
+    Returns: the JSON formatted vods list
+
+    
+    """
     return fetch_json(channel_id, VOD_URL_TEMPLATE)
 
 
 @sleep_and_retry
 @limits(calls=800, period=60)
 def fetch_json(id, url_template):
+    """fetches a JSON from the given URL template and generic id.
+
+    Args:
+      id: the unique identifier of your request
+      url_template: the template for the request where id will be replaced
+    example: 'https://api.twitch.tv/helix/videos?user_id=%s&type=all'
+
+    Returns: the JSON response for the request
+
+    
+    """
     authorize()
     url = url_template % id
     headers = {
@@ -193,7 +270,20 @@ def fetch_json(id, url_template):
     abort(503)
 
 
-def extract_userid(user_info):
+def extract_userinfo(user_info):
+    """extract userid, username and icon form the given user.
+
+    Args:
+      user_info: JSON parsed user data
+
+    Returns:(
+        username: the username
+        userid: unique identifier for the user
+        icon: url for the icon
+    ) 
+
+    
+    """
     # Get the first id in the list
     try:
         userid = user_info['id']
@@ -211,6 +301,19 @@ def extract_userid(user_info):
 
 
 def construct_rss(channel_name, vods, display_name, icon, add_live=True):
+    """returns the RSS for the given inputs.
+
+    Args:
+      channel_name: username of the channel
+      vods: parsed list of vods given by twitch
+      display_name: the name channel
+      icon: the icon url for the channel
+      add_live: NOT REIMPLEMENTED YET (Default value = True)
+
+    Returns: fully formatted RSS string
+
+    
+    """
     logging.debug("processing channel: " + channel_name)
     feed = FeedGenerator()
     feed.load_extension('podcast')
