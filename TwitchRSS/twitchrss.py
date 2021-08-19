@@ -21,7 +21,7 @@ Description: webserver that converts a twitch channel into a podcast feed
 # limitations under the License.
 #
 
-from cachetools import cached, TTLCache 
+from cachetools import cached, TTLCache
 from feedgen.feed import FeedGenerator
 from flask import abort, Flask, request, render_template
 from os import environ
@@ -123,7 +123,7 @@ def get_audiostream_url(vod_url):
 
     Returns: the audio stream url
 
-    
+
     """
     logging.debug("looking up audio url for " + vod_url)
     try:
@@ -139,11 +139,11 @@ def vod(channel):
     """process request to /vod/.
 
     Args:
-      channel: 
+      channel:
 
     Returns: the http response
 
-    
+
     """
 
     if CHANNEL_FILTER.match(channel):
@@ -156,11 +156,11 @@ def vodonly(channel):
     """process request to /vodonly/.
 
     Args:
-      channel: 
+      channel:
 
     Returns: the http response
 
-    
+
     """
     if CHANNEL_FILTER.match(channel):
         return process_channel(channel, request.args)
@@ -180,13 +180,13 @@ def process_channel(channel, request_args):
       channel: the channel string given in the request
       add_live: NOT YET REIMPLEMENTED (Default value = True)
 
-    Returns: 
+    Returns:
     (
         rss_data: the fully formed rss feed
         headers: the headers for the response
     )
 
-    
+
     """
     include_streaming = True if request_args.get("include_streaming", "False") == "True" else False
 
@@ -219,7 +219,7 @@ def fetch_channel(channel_name):
 
     Returns: the JSON formatted channel info
 
-    
+
     """
     return fetch_json(channel_name, USERID_URL_TEMPLATE)
 
@@ -233,7 +233,7 @@ def fetch_vods(channel_id):
 
     Returns: the JSON formatted vods list
 
-    
+
     """
     return fetch_json(channel_id, VOD_URL_TEMPLATE)
 
@@ -241,7 +241,7 @@ def fetch_vods(channel_id):
 def fetch_streams(user_id):
     return fetch_json(user_id, STREAMS_URL_TEMPLATE)
 
-def getAuthHeaders(): 
+def getAuthHeaders():
     authorize()
     return {
         'Authorization': 'Bearer '+TWITCH_OAUTH_TOKEN,
@@ -261,7 +261,7 @@ def fetch_json(id, url_template):
 
     Returns: the JSON response for the request
 
-    
+
     """
     url = url_template % id
     headers = getAuthHeaders()
@@ -295,7 +295,7 @@ def construct_rss(user, vods, streams, includeStreams=False):
 
     Returns: fully formatted RSS string
 
-    
+
     """
 
     logging.debug("processing channel")
@@ -315,7 +315,7 @@ def construct_rss(user, vods, streams, includeStreams=False):
         logging.debug("streams data:")
         logging.debug(streams)
 
-    
+
     feed = FeedGenerator()
     feed.load_extension('podcast')
 
@@ -330,7 +330,7 @@ def construct_rss(user, vods, streams, includeStreams=False):
     feed.podcast.itunes_complete(False)
     feed.podcast.itunes_explicit('no')
     feed.podcast.itunes_image(icon)
-    feed.podcast.itunes_summary("The RSS Feed of %s's videos on Twitch" % display_name) 
+    feed.podcast.itunes_summary("The RSS Feed of %s's videos on Twitch" % display_name)
     # Create an item
     if vods:
         for vod in vods:
