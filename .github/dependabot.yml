@@ -9,8 +9,5 @@ updates:
     directory: "/TwitchRSS" # Location of package manifests
     schedule:
       interval: "daily"
-    allowed_updates:
-      - match:
-          update_type: "security"
-      - match:
-          dependency_name: "streamlink"
+    allow:
+      - dependency-name: "streamlink"
