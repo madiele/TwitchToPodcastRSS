@@ -12,7 +12,8 @@ RUN pip3 wheel -r ./requirements.txt --wheel-dir=/pip_wheels
 FROM python:3.8.2-slim AS final-stage
 COPY --from=pipwheels /pip_wheels /pip_wheels
 RUN apt-get update && apt-get install -y libxslt-dev && rm -rf /var/lib/apt/lists/*
+COPY ./TwitchRSS/requirements.txt .
+RUN pip3 install --no-index --find-links=/pip_wheels -r requirements.txt
 COPY . /
 WORKDIR /TwitchRSS
-RUN pip3 install --no-index --find-links=/pip_wheels -r requirements.txt
 ENTRYPOINT ["gunicorn", "-b",  ":80", "-w", "1", "--threads", "5", "-k", "gthread", "twitchrss:app"]
