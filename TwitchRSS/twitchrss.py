@@ -44,6 +44,7 @@ import urllib
 
 VOD_URL_TEMPLATE = 'https://api.twitch.tv/helix/videos?user_id=%s&type=all'
 USERID_URL_TEMPLATE = 'https://api.twitch.tv/helix/users?login=%s'
+STREAMS_URL_TEMPLATE = 'https://api.twitch.tv/helix/streams?user_id=%s'
 VODCACHE_LIFETIME = 10 * 60
 USERIDCACHE_LIFETIME = 24 * 60 * 60
 VODURLSCACHE_LIFETIME = 24 * 60 * 60
@@ -71,6 +72,7 @@ streamUrl_queues = {}
 cache_locks = {
         'fetch_channel': Lock(),
         'fetch_vods': Lock(),
+        'fetch_streams': Lock(),
         'get_audiostream_url': Lock(),
         }
 
@@ -99,6 +101,8 @@ def authorize():
             TWITCH_OAUTH_TOKEN = r['access_token']
             TWITCH_OAUTH_EXPIRE_EPOCH = int(r['expires_in']) + round(time.time())
             logging.debug("oauth token aquired")
+            logging.debug(TWITCH_CLIENT_ID)
+            logging.debug(TWITCH_OAUTH_TOKEN)
             return
         except Exception as e:
             logging.warning("Fetch exception caught: %s" % e)
@@ -141,8 +145,9 @@ def vod(channel):
 
     
     """
+
     if CHANNEL_FILTER.match(channel):
-        return process_channel(channel)
+        return process_channel(channel, request.args)
     else:
         abort(404)
 
@@ -158,7 +163,7 @@ def vodonly(channel):
     
     """
     if CHANNEL_FILTER.match(channel):
-        return process_channel(channel, add_live=False)
+        return process_channel(channel, request.args)
     else:
         abort(404)
 
@@ -168,7 +173,7 @@ def index():
     return render_template('index.html')
 
 
-def process_channel(channel, add_live=True):
+def process_channel(channel, request_args):
     """process the given channel.
 
     Args:
@@ -183,18 +188,19 @@ def process_channel(channel, add_live=True):
 
     
     """
-    user_json = fetch_channel(channel)
-    if not user_json:
+    include_streaming = True if request_args.get("include_streaming", "False") == "True" else False
+
+    try:
+        user_data = json.loads(fetch_channel(channel))['data'][0]
+        channel_id = user_data['id']
+        vods_data = json.loads(fetch_vods(channel_id))['data']
+        streams_data = json.loads(fetch_streams(channel_id))['data']
+    except KeyError as e:
+        logging.error("could not fetch data for the given request")
+        logging.error(e)
         abort(404)
 
-    (channel_display_name, channel_id, icon) = extract_userinfo(json.loads(user_json)['data'][0])
-
-    channel_json = fetch_vods(channel_id)
-    if not channel_json:
-        abort(404)
-
-    decoded_json = json.loads(channel_json)['data']
-    rss_data = construct_rss(channel, decoded_json, channel_display_name, icon, add_live)
+    rss_data = construct_rss(user_data, vods_data, streams_data, include_streaming)
     headers = {'Content-Type': 'text/xml'}
 
     if 'gzip' in request.headers.get("Accept-Encoding", ''):
@@ -231,6 +237,17 @@ def fetch_vods(channel_id):
     """
     return fetch_json(channel_id, VOD_URL_TEMPLATE)
 
+@cached(cache=TTLCache(maxsize=500, ttl=VODCACHE_LIFETIME), lock=cache_locks['fetch_streams'])
+def fetch_streams(user_id):
+    return fetch_json(user_id, STREAMS_URL_TEMPLATE)
+
+def getAuthHeaders(): 
+    authorize()
+    return {
+        'Authorization': 'Bearer '+TWITCH_OAUTH_TOKEN,
+        'Client-Id': TWITCH_CLIENT_ID,
+        }
+
 
 @sleep_and_retry
 @limits(calls=800, period=60)
@@ -246,13 +263,9 @@ def fetch_json(id, url_template):
 
     
     """
-    authorize()
     url = url_template % id
-    headers = {
-        'Authorization': 'Bearer '+TWITCH_OAUTH_TOKEN,
-        'Client-Id': TWITCH_CLIENT_ID,
-        'Accept-Encoding': 'gzip'
-    }
+    headers = getAuthHeaders()
+    headers['Accept-Encoding'] = 'gzip'
     request = urllib.request.Request(url, headers=headers)
     retries = 0
     while retries < 3:
@@ -270,37 +283,7 @@ def fetch_json(id, url_template):
     abort(503)
 
 
-def extract_userinfo(user_info):
-    """extract userid, username and icon form the given user.
-
-    Args:
-      user_info: JSON parsed user data
-
-    Returns:(
-        username: the username
-        userid: unique identifier for the user
-        icon: url for the icon
-    ) 
-
-    
-    """
-    # Get the first id in the list
-    try:
-        userid = user_info['id']
-        username = user_info['display_name']
-        icon = user_info['profile_image_url']
-    except KeyError as e:
-        logging.error("error while processing user_info: " + user_info)
-        logging.error(e)
-        abort(500)
-    if username and userid:
-        return username, userid, icon
-    else:
-        logging.warning('Userid is not found in %s' % user_info)
-        abort(404)
-
-
-def construct_rss(channel_name, vods, display_name, icon, add_live=True):
+def construct_rss(user, vods, streams, includeStreams=False):
     """returns the RSS for the given inputs.
 
     Args:
@@ -314,7 +297,25 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
 
     
     """
-    logging.debug("processing channel: " + channel_name)
+
+    logging.debug("processing channel")
+    try:
+        channel_name = user['login']
+        display_name = user['display_name']
+        icon = user['profile_image_url']
+        isStreaming = True if streams else False
+    except KeyError as e:
+        logging.error("error while processing user data")
+        logging.error(e)
+        abort(500)
+    logging.debug("streaming=" + str(isStreaming))
+    logging.debug("user data:")
+    logging.debug(user)
+    if isStreaming:
+        logging.debug("streams data:")
+        logging.debug(streams)
+
+    
     feed = FeedGenerator()
     feed.load_extension('podcast')
 
@@ -334,25 +335,25 @@ def construct_rss(channel_name, vods, display_name, icon, add_live=True):
     if vods:
         for vod in vods:
             try:
+
                 logging.debug("processing vod:" + vod['id'])
                 logging.debug(vod)
+                description = ""
+                if isStreaming and vod['stream_id'] == streams[0]['id']:
+                    if not includeStreams:
+                        logging.debug("skipping incomplete vod")
+                        continue
+                    else:
+                        description = "<p>warning: this stream is still going</p>"
+                        thumb = "https://vod-secure.twitch.tv/_404/404_processing_320x180.png"
+                else:
+                    thumb = vod['thumbnail_url'].replace("%{width}", "512").replace("%{height}","288")
                 item = feed.add_entry()
-                #if vod["status"] == "recording":
-                #    if not add_live:
-                #        continue
-                #    link = "http://www.twitch.tv/%s" % channel_name
-                #    item.title("%s - LIVE" % vod['title'])
-                #    item.category("live")
-                #else:
                 link = vod['url']
                 item.title(vod['title'])
-                #item.category(vod['type'])
 
-                thumb = vod['thumbnail_url'].replace("%{width}", "512").replace("%{height}","288")
 
-                description = "<a href=\"%s\"><p>%s</p><img src=\"%s\" /></a>" % (link, HTMLescape(vod['title']), thumb)
-                #if vod.get('game'):
-                    #description += "<br/>" + vod['game']
+                description += "<a href=\"%s\"><p>%s</p><img src=\"%s\" /></a>" % (link, HTMLescape(vod['title']), thumb)
                 if vod['description']:
                     description += "<br/>" + vod['description']
 
