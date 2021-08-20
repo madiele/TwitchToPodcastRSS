@@ -94,7 +94,8 @@ def new_release_available():
     try:
         result = urllib.request.urlopen(request, timeout=3)
         data = json.loads(result.read().decode('utf-8'))
-        remote_version = data['name']
+        import pdb; pdb.set_trace()
+        remote_version = data['tag_name']
         if remote_version == TTP_VERSION:
             return False
         else:
