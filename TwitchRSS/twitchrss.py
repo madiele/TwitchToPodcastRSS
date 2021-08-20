@@ -129,8 +129,6 @@ def authorize():
             TWITCH_OAUTH_TOKEN = r['access_token']
             TWITCH_OAUTH_EXPIRE_EPOCH = int(r['expires_in']) + round(time.time())
             logging.debug("oauth token aquired")
-            logging.debug(TWITCH_CLIENT_ID)
-            logging.debug(TWITCH_OAUTH_TOKEN)
             return
         except Exception as e:
             logging.warning("Fetch exception caught: %s" % e)
