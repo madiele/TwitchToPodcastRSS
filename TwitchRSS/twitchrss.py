@@ -68,6 +68,7 @@ if not TWITCH_SECRET:
 
 app = Flask(__name__)
 streamlink_session = Streamlink(options=None)
+streamlink_session.load_plugins("TTPstreamlink/plugins/")
 streamUrl_queues = {}
 cache_locks = {
         'fetch_channel': Lock(),
@@ -125,7 +126,7 @@ def get_audiostream_url(vod_url):
     """
     logging.debug("looking up audio url for " + vod_url)
     try:
-        stream_url = streamlink_session.streams(vod_url).get('audio').to_url()
+        stream_url = streamlink_session.get_plugins()['TTLTwitch'](vod_url).streams().get('audio').to_url()
     except (AttributeError, PluginError) as e:
         logging.error("streamlink has returned an error:")
         logging.error(e)
