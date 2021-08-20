@@ -351,7 +351,7 @@ def construct_rss(user, vods, streams, includeStreams=False):
     feed.image(url=icon)
     feed.id("https://github.com/madiele/TwitchToPodcastRSS")
     feed.title("%s's Twitch video RSS" % display_name)
-    feed.link(href='https://twitchrss.appspot.com/', rel='self')
+    feed.link(href='https://www.twitch.tv/' + channel_name, rel='self')
     feed.author(name="Twitch RSS Generated")
     feed.description("The RSS Feed of %s's videos on Twitch" % display_name)
     feed.podcast.itunes_author("Twitch RSS Generated")
