@@ -30,6 +30,7 @@ from streamlink import Streamlink
 from streamlink.exceptions import PluginError
 from threading import Lock, RLock
 from html import escape as HTMLescape
+from git import Repo
 import datetime
 import gzip
 import json
@@ -42,17 +43,25 @@ import urllib
 
 
 
+
 VOD_URL_TEMPLATE = 'https://api.twitch.tv/helix/videos?user_id=%s&type=all'
 USERID_URL_TEMPLATE = 'https://api.twitch.tv/helix/users?login=%s'
 STREAMS_URL_TEMPLATE = 'https://api.twitch.tv/helix/streams?user_id=%s'
 VODCACHE_LIFETIME = 10 * 60
 USERIDCACHE_LIFETIME = 24 * 60 * 60
 VODURLSCACHE_LIFETIME = 24 * 60 * 60
+CHECK_UPDATE_INTERVAL = 24 * 60 * 60
 CHANNEL_FILTER = re.compile("^[a-zA-Z0-9_]{2,25}$")
 TWITCH_CLIENT_ID = environ.get("TWITCH_CLIENT_ID")
 TWITCH_SECRET = environ.get("TWITCH_SECRET")
 TWITCH_OAUTH_TOKEN = ""
 TWITCH_OAUTH_EXPIRE_EPOCH = 0
+GITHUB_REPO = 'madiele/TwitchToPodcastRSS'
+GIT_ROOT = '..'
+GIT_REPO = Repo(GIT_ROOT)
+# finds what's the lastes tagged release is locally
+TTP_VERSION = sorted(GIT_REPO.tags, key=lambda t: t.commit.committed_datetime)[-1].name
+
 logging.basicConfig(
         format='%(asctime)s %(levelname)-8s %(message)s',
         level=logging.DEBUG if environ.get('DEBUG') else logging.INFO,
@@ -74,8 +83,29 @@ cache_locks = {
         'fetch_vods': Lock(),
         'fetch_streams': Lock(),
         'get_audiostream_url': Lock(),
+        'check_for_updates': Lock(),
         }
 
+@cached(cache=TTLCache(maxsize=1, ttl=CHECK_UPDATE_INTERVAL), lock=cache_locks['check_for_updates'])
+def new_release_available():
+    """check to see if there are new releases on the git repo.
+
+        Returns: True if there are, False otherwise
+    """
+    url = 'https://api.github.com/repos/%s/releases/latest' % GITHUB_REPO
+    request = urllib.request.Request(url, method='GET')
+    try:
+        result = urllib.request.urlopen(request, timeout=3)
+        data = json.loads(result.read().decode('utf-8'))
+        remote_version = data['name']
+        if (remote_version == TTP_VERSION):
+            return False
+        else:
+            return True
+    except Exception as e:
+        logging.warning('could not check for updates, reason:')
+        logging.warning(e)
+    return False
 
 def authorize():
     """updates the oauth token if expired."""
@@ -384,6 +414,9 @@ def construct_rss(user, vods, streams, includeStreams=False):
 
                 if (stream_url):
                     item.enclosure(stream_url, type='audio/mpeg')
+
+                if (new_release_available()):
+                    description += '<br><p><a href="https://github.com/%s/releases">new version of TwitchToPodcastRSS available!</a></p>' % GITHUB_REPO
 
                 item.link(href=link, rel="related")
                 item.description(description)
