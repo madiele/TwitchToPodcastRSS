@@ -21,28 +21,25 @@ Description: webserver that converts a twitch channel into a podcast feed
 # limitations under the License.
 #
 
-from cachetools import cached, TTLCache
-from feedgen.feed import FeedGenerator
-from flask import abort, Flask, request, render_template
-from os import environ
-from ratelimit import limits, sleep_and_retry
-from streamlink import Streamlink
-from streamlink.exceptions import PluginError
-from threading import Lock, RLock
-from html import escape as HTMLescape
-from git import Repo
 import datetime
 import gzip
 import json
 import logging
-import pytz
 import re
-import subprocess
 import time
 import urllib
+from html import escape as html_escape
+from os import environ
+from threading import Lock, RLock
 
-
-
+import pytz
+from cachetools import cached, TTLCache
+from feedgen.feed import FeedGenerator
+from flask import abort, Flask, request, render_template
+from git import Repo
+from ratelimit import limits, sleep_and_retry
+from streamlink import Streamlink
+from streamlink.exceptions import PluginError
 
 VOD_URL_TEMPLATE = 'https://api.twitch.tv/helix/videos?user_id=%s&type=all'
 USERID_URL_TEMPLATE = 'https://api.twitch.tv/helix/users?login=%s'
@@ -63,29 +60,29 @@ GIT_REPO = Repo(GIT_ROOT)
 TTP_VERSION = sorted(GIT_REPO.tags, key=lambda t: t.commit.committed_datetime)[-1].name
 
 logging.basicConfig(
-        format='%(asctime)s %(levelname)-8s %(message)s',
-        level=logging.DEBUG if environ.get('DEBUG') else logging.INFO,
-        datefmt='%Y-%m-%d %H:%M:%S'
-        )
-
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.DEBUG if environ.get('DEBUG') else logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 if not TWITCH_CLIENT_ID:
     raise Exception("Twitch API client id env variable is not set.")
 if not TWITCH_SECRET:
     raise Exception("Twitch API secret env variable not set.")
 
-
 app = Flask(__name__)
 streamlink_session = Streamlink(options=None)
 streamUrl_queues = {}
 cache_locks = {
-        'fetch_channel': Lock(),
-        'fetch_vods': Lock(),
-        'fetch_streams': Lock(),
-        'get_audiostream_url': Lock(),
-        'check_for_updates': Lock(),
-        }
+    'fetch_channel': Lock(),
+    'fetch_vods': Lock(),
+    'fetch_streams': Lock(),
+    'get_audiostream_url': Lock(),
+    'check_for_updates': Lock(),
+}
 
+
+# noinspection PyUnresolvedReferences
 @cached(cache=TTLCache(maxsize=1, ttl=CHECK_UPDATE_INTERVAL), lock=cache_locks['check_for_updates'])
 def new_release_available():
     """check to see if there are new releases on the git repo.
@@ -98,7 +95,7 @@ def new_release_available():
         result = urllib.request.urlopen(request, timeout=3)
         data = json.loads(result.read().decode('utf-8'))
         remote_version = data['name']
-        if (remote_version == TTP_VERSION):
+        if remote_version == TTP_VERSION:
             return False
         else:
             return True
@@ -107,13 +104,14 @@ def new_release_available():
         logging.warning(e)
     return False
 
+
 def authorize():
     """updates the oauth token if expired."""
 
     global TWITCH_OAUTH_TOKEN
     global TWITCH_OAUTH_EXPIRE_EPOCH
 
-    if (TWITCH_OAUTH_EXPIRE_EPOCH >= round(time.time())):
+    if TWITCH_OAUTH_EXPIRE_EPOCH >= round(time.time()):
         return
     logging.debug("requesting a new oauth token")
     data = {
@@ -140,9 +138,11 @@ def authorize():
     logging.error("could not get oauth token from twitch")
     abort(503)
 
+
 class NoAudioStreamException(Exception):
     """NoAudioStreamException."""
     pass
+
 
 @cached(cache=TTLCache(maxsize=3000, ttl=VODURLSCACHE_LIFETIME), lock=cache_locks['get_audiostream_url'])
 def get_audiostream_url(vod_url):
@@ -162,6 +162,7 @@ def get_audiostream_url(vod_url):
         raise NoAudioStreamException
     return stream_url
 
+
 @app.route('/vod/<string:channel>', methods=['GET', 'HEAD'])
 def vod(channel):
     """process request to /vod/.
@@ -178,6 +179,7 @@ def vod(channel):
     else:
         abort(404)
 
+
 @app.route('/vodonly/<string:channel>', methods=['GET', 'HEAD'])
 def vodonly(channel):
     """process request to /vodonly/.
@@ -192,6 +194,7 @@ def vodonly(channel):
         return process_channel(channel, request.args)
     else:
         abort(404)
+
 
 @app.route('/')
 def index():
@@ -256,6 +259,7 @@ def fetch_vods(channel_id):
     """
     return fetch_json(channel_id, VOD_URL_TEMPLATE)
 
+
 @cached(cache=TTLCache(maxsize=500, ttl=VODCACHE_LIFETIME), lock=cache_locks['fetch_streams'])
 def fetch_streams(user_id):
     """fetches the JSON formatted list of streams for the give user
@@ -268,7 +272,8 @@ def fetch_streams(user_id):
     """
     return fetch_json(user_id, STREAMS_URL_TEMPLATE)
 
-def getAuthHeaders():
+
+def get_auth_headers():
     """gets the headers for the twitch API and requests a new oauth token if needed
 
     Returns: a dict containing auth data
@@ -276,9 +281,9 @@ def getAuthHeaders():
     """
     authorize()
     return {
-        'Authorization': 'Bearer '+TWITCH_OAUTH_TOKEN,
+        'Authorization': 'Bearer ' + TWITCH_OAUTH_TOKEN,
         'Client-Id': TWITCH_CLIENT_ID,
-        }
+    }
 
 
 @sleep_and_retry
@@ -294,7 +299,7 @@ def fetch_json(id, url_template):
 
     """
     url = url_template % id
-    headers = getAuthHeaders()
+    headers = get_auth_headers()
     headers['Accept-Encoding'] = 'gzip'
     request = urllib.request.Request(url, headers=headers)
     retries = 0
@@ -313,14 +318,14 @@ def fetch_json(id, url_template):
     abort(503)
 
 
-def construct_rss(user, vods, streams, includeStreams=False):
+def construct_rss(user, vods, streams, include_streams=False):
     """returns the RSS for the given inputs.
 
     Args:
       user: the user dict
       vods: the vod dict
       streams: the streams dict
-      includeStreams: True if the streams should be included (Default value = False)
+      include_streams: True if the streams should be included (Default value = False)
 
     Returns: fully formatted RSS string
 
@@ -331,18 +336,17 @@ def construct_rss(user, vods, streams, includeStreams=False):
         channel_name = user['login']
         display_name = user['display_name']
         icon = user['profile_image_url']
-        isStreaming = True if streams else False
+        is_streaming = True if streams else False
     except KeyError as e:
         logging.error("error while processing user data")
         logging.error(e)
         abort(500)
-    logging.debug("streaming=" + str(isStreaming))
+    logging.debug("streaming=" + str(is_streaming))
     logging.debug("user data:")
     logging.debug(user)
-    if isStreaming:
+    if is_streaming:
         logging.debug("streams data:")
         logging.debug(streams)
-
 
     feed = FeedGenerator()
     feed.load_extension('podcast')
@@ -367,29 +371,29 @@ def construct_rss(user, vods, streams, includeStreams=False):
                 logging.debug("processing vod:" + vod['id'])
                 logging.debug(vod)
                 description = ""
-                if isStreaming and vod['stream_id'] == streams[0]['id']:
-                    if not includeStreams:
+                if is_streaming and vod['stream_id'] == streams[0]['id']:
+                    if not include_streams:
                         logging.debug("skipping incomplete vod")
                         continue
                     else:
                         description = "<p>warning: this stream is still going</p>"
                         thumb = "https://vod-secure.twitch.tv/_404/404_processing_320x180.png"
                 else:
-                    thumb = vod['thumbnail_url'].replace("%{width}", "512").replace("%{height}","288")
+                    thumb = vod['thumbnail_url'].replace("%{width}", "512").replace("%{height}", "288")
                 item = feed.add_entry()
                 link = vod['url']
                 item.title(vod['title'])
 
-
-                description += "<a href=\"%s\"><p>%s</p><img src=\"%s\" /></a>" % (link, HTMLescape(vod['title']), thumb)
+                description += "<a href=\"%s\"><p>%s</p><img src=\"%s\" /></a>" % (
+                    link, html_escape(vod['title']), thumb)
                 if vod['description']:
                     description += "<br/>" + vod['description']
 
-                #prevent get_audiostream_url to be run concurrenty with the same paramenter
-                #this way the next hit on get_audiostream_url will use the cache instead
+                # prevent get_audiostream_url to be run concurrenty with the same paramenter
+                # this way the next hit on get_audiostream_url will use the cache instead
 
                 global streamUrl_queues
-                if not link in streamUrl_queues:
+                if link not in streamUrl_queues:
                     q = streamUrl_queues[link] = {'lock': RLock(), 'count': 0}
                 else:
                     q = streamUrl_queues[link]
@@ -400,11 +404,10 @@ def construct_rss(user, vods, streams, includeStreams=False):
                 try:
                     stream_url = get_audiostream_url(link)
                 except NoAudioStreamException as e:
+                    logging.error(e)
                     description += "TwitchToPodcastRSS ERROR: could not fetch an audio stream for this vod,"
                     description += "try refreshing the RSS feed later"
                     stream_url = None
-
-
 
                 q['count'] = q['count'] - 1
                 if q['count'] == 0:
@@ -412,25 +415,25 @@ def construct_rss(user, vods, streams, includeStreams=False):
 
                 q['lock'].release()
 
-                if (stream_url):
+                if stream_url:
                     item.enclosure(stream_url, type='audio/mpeg')
 
-                if (new_release_available()):
+                if new_release_available():
                     description += '<br><p><a href="https://github.com/%s/releases">new version of TwitchToPodcastRSS available!</a></p>' % GITHUB_REPO
 
                 item.link(href=link, rel="related")
                 item.description(description)
                 date = datetime.datetime.strptime(vod['created_at'], '%Y-%m-%dT%H:%M:%SZ')
-                item.podcast.itunes_duration(re.sub('[hm]',':', vod['duration']).replace('s',''))
+                item.podcast.itunes_duration(re.sub('[hm]', ':', vod['duration']).replace('s', ''))
                 item.podcast.itunes_author(channel_name)
-                if (thumb.endswith('.jpg') or thumb.endswith('.png')):
+                if thumb.endswith('.jpg') or thumb.endswith('.png'):
                     item.podcast.itunes_image(thumb)
 
                 item.pubDate(pytz.utc.localize(date))
                 item.updated(pytz.utc.localize(date))
                 guid = vod['id']
-                #if vod["status"] == "recording":  # To show a different news item when recording is over
-                    #guid += "_live"
+                # if vod["status"] == "recording":  # To show a different news item when recording is over
+                # guid += "_live"
                 item.guid(guid)
             except KeyError as e:
                 logging.warning('Issue with json while processing vod: %s\n\nException: %s' % (vod, e))

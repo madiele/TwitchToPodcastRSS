@@ -1,4 +1,4 @@
-# this is ste script to generate new copiled images for every architecture on windows and then push to docker.hub
+# this is ste script to generate new compiled images for every architecture on windows and then push to docker.hub
 param($version)
 if ($version -eq $null) {
 	$version = read-host -Prompt "pleas input version to push example: v1.2"

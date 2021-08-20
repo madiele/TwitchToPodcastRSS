@@ -1,19 +1,19 @@
 based on [twitchRSS](https://github.com/lzeke0/TwitchRSS)
 
-# IMPORTANT: update to v1.1.2+, previous verions contain a memory leak 
+# IMPORTANT: update to v1.1.2+, previous versions contain a memory leak 
 
 # TwitchToPodcastRSS
 
-converts a twitch channel in a full blown podcast
+converts a twitch channel in a full-blown podcast
 <a label="example of it working with podcast addict" href="url"><img src="https://user-images.githubusercontent.com/4585690/129647659-b3bec66b-4cbb-408c-840c-9596f0c32dc2.jpg" align="left" height="400" ></a>
 ## Features:
-- copletly converts the vods in a proper podcast RSS that can be listen directly inside the client (if they support audio only m3u8 playback, [podcast addict](https://play.google.com/store/apps/details?id=com.bambuna.podcastaddict&hl=en_US&gl=US) is the only app I foud that has support for it), no need for the twitch app
-- the descripion has a clickable image that opens the vod in the twitch app
+- completely converts the vods in a proper podcast RSS that can be listened directly inside the client (if they support audio only m3u8 playback, [podcast addict](https://play.google.com/store/apps/details?id=com.bambuna.podcastaddict&hl=en_US&gl=US) is the only app I found that has support for it), no need for the twitch app
+- the description has a clickable image that opens the vod in the twitch app
 - support for the new helix twitch API
-- no trascoding or server side stream processing is done, the vods are not downloaded on the server, this also means that that the episodes are only avalible until they get deleted from twitch (2 weeks - 2 months in general)
+- no transcoding or server side stream processing is done, the vods are not downloaded on the server, this also means that the episodes are only available until they get deleted from twitch (2 weeks - 2 months in general)
 
 ## Known issues:
-- first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generaly done in backgroud by the podcast clients this should not be a huge limitation, just give it time
+- first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generally done in background by the podcast clients this should not be a huge limitation, just give it time
 
 ## Usage
 when you host this just add /vod/channelName to your server path and an RSS will be generated
@@ -55,7 +55,7 @@ run this inside the folder with `docker-compose.yml`
 
 `sudo docker-compose pull && sudo docker-compose up -d`
 
-then run this to delete the old version form your sistem (note: this will also delete any other unused image you have)
+then run this to delete the old version form your system (note: this will also delete any other unused image you have)
 
 `sudo docker system prune`
 
