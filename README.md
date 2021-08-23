@@ -30,7 +30,7 @@ example: `myserver.com/vod/channelname?include_streaming=True`
 
 ### sorting
 
-if you use a feed reader you can order the feed by any key suppored by twitch, the list of keys to sort by can be found [here](https://dev.twitch.tv/docs/api/reference#get-videos) in the response field section
+if you use a feed reader you can order the feed by any field suppored by twitch, the list of fields to sort by can be found [here](https://dev.twitch.tv/docs/api/reference#get-videos) in the response field section
 
 by default it sorts by the published_at field
 
