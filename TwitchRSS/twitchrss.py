@@ -21,6 +21,11 @@ Description: webserver that converts a twitch channel into a podcast feed
 # limitations under the License.
 #
 
+from collections import OrderedDict
+from html import escape as html_escape
+from os import environ
+from threading import Lock, RLock
+from dateutil.parser import parse as parse_date
 import datetime
 import gzip
 import json
@@ -28,9 +33,6 @@ import logging
 import re
 import time
 import urllib
-from html import escape as html_escape
-from os import environ
-from threading import Lock, RLock
 
 import pytz
 from cachetools import cached, TTLCache
@@ -41,7 +43,7 @@ from ratelimit import limits, sleep_and_retry
 from streamlink import Streamlink
 from streamlink.exceptions import PluginError
 
-VOD_URL_TEMPLATE = 'https://api.twitch.tv/helix/videos?user_id=%s&type=all'
+VOD_URL_TEMPLATE = 'https://api.twitch.tv/helix/videos?sort=time&user_id=%s&type=all'
 USERID_URL_TEMPLATE = 'https://api.twitch.tv/helix/users?login=%s'
 STREAMS_URL_TEMPLATE = 'https://api.twitch.tv/helix/streams?user_id=%s'
 VODCACHE_LIFETIME = 10 * 60
@@ -94,7 +96,6 @@ def new_release_available():
     try:
         result = urllib.request.urlopen(request, timeout=3)
         data = json.loads(result.read().decode('utf-8'))
-        import pdb; pdb.set_trace()
         remote_version = data['tag_name']
         if remote_version == TTP_VERSION:
             return False
@@ -213,7 +214,9 @@ def process_channel(channel, request_args):
       rss_data: the fully formed rss feed
 
     """
-    include_streaming = True if request_args.get("include_streaming", "False") == "True" else False
+    include_streaming = True if request_args.get("include_streaming", "False").lower() == "true" else False
+    sort_by = request_args.get("sort_by", "published_at").lower()
+    desc = True if request_args.get("desc", "False").lower() == "true" else False
 
     try:
         user_data = json.loads(fetch_channel(channel))['data'][0]
@@ -225,7 +228,7 @@ def process_channel(channel, request_args):
         logging.error(e)
         abort(404)
 
-    rss_data = construct_rss(user_data, vods_data, streams_data, include_streaming)
+    rss_data = construct_rss(user_data, vods_data, streams_data, include_streaming, sort_by=sort_by, desc_sort=desc)
     headers = {'Content-Type': 'text/xml'}
 
     if 'gzip' in request.headers.get("Accept-Encoding", ''):
@@ -318,7 +321,7 @@ def fetch_json(id, url_template):
     abort(503)
 
 
-def construct_rss(user, vods, streams, include_streams=False):
+def construct_rss(user, vods, streams, include_streams=False, sort_by="published_at", desc_sort=False):
     """returns the RSS for the given inputs.
 
     Args:
@@ -326,6 +329,8 @@ def construct_rss(user, vods, streams, include_streams=False):
       vods: the vod dict
       streams: the streams dict
       include_streams: True if the streams should be included (Default value = False)
+      sort_by: the key to sort by, the keys are the same used by the twitch API https://dev.twitch.tv/docs/api/reference#get-videos
+      desc_sort: True if the sort must be done in ascending oreder
 
     Returns: fully formatted RSS string
 
@@ -365,6 +370,27 @@ def construct_rss(user, vods, streams, include_streams=False):
     feed.podcast.itunes_summary("The RSS Feed of %s's videos on Twitch" % display_name)
     # Create an item
     if vods:
+
+        try:
+            is_date = False
+            try:
+                parse_date(vods[0][sort_by])
+                is_date = True
+            except (ValueError, OverflowError, TypeError):
+                is_date = False
+
+            logging.debug("ordering by: " + str(sort_by) + "; desc_sort=" + str(desc_sort))
+            if is_date:
+                vods = sorted(vods, key=lambda kv: parse_date(kv[sort_by]), reverse=desc_sort)
+            else:
+                vods = sorted(vods, key=lambda kv: kv[sort_by], reverse=desc_sort)
+        except KeyError:
+            logging.error("can't order by " + sort_by + " resorting to ordering by id")
+            sort_by = "published_at"
+            try:
+                vods = sorted(vods, key=lambda kv: kv['id'], reverse=False)
+            except KeyError:
+                logging.error("can't order by standard ordering")
         for vod in vods:
             try:
 
