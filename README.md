@@ -13,7 +13,7 @@ converts a twitch channel in a full-blown podcast
 - no transcoding or server side stream processing is done, the vods are not downloaded on the server, this also means that the episodes are only available until they get deleted from twitch (2 weeks - 2 months in general)
 
 ## Known issues:
-- first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generally done in background by the podcast clients this should not be a huge limitation, just give it time. if you only listen/watch inside the twitch app or website be sure to enable [liks only mode](#only-links-mode) to make the feed generation much faster
+- first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generally done in background by the podcast clients this should not be a huge limitation, just give it time. if you only listen/watch inside the twitch app or website be sure to enable [links only mode](#only-links-mode) to make the feed generation much faster
 
 ## Usage
 when you host this just add /vod/channelName to your server path and an RSS will be generated
