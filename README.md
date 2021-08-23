@@ -26,6 +26,24 @@ unfinished streams are not included, but if you want them to just add `?include_
 
 example: `myserver.com/vod/channelname?include_streaming=True`
 
+### sorting
+
+if you use a feed reader you can order the feed by any key suppored by twitch, the list of keys to sort by can be found [here](https://dev.twitch.tv/docs/api/reference#get-videos) in the response field section
+
+by default it sorts by the published_at field
+
+to enable sorting just add `sort_by=[key]` or/and `desc=True` to the URL
+
+some examples:
+
+to sort by views:
+
+`myserver.com/vod/kasparovchess?sort_by=view_count`
+
+to sort by views descending:
+
+`myserver.com/vod/kasparovchess?sort_by=view_count&desc=true`
+
 ## install with docker
 before doing anything be sure to get your SECRET and CLIENT ID from twitch
 https://dev.twitch.tv/console
