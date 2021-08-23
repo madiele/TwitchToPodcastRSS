@@ -38,11 +38,23 @@ some examples:
 
 to sort by views:
 
-`myserver.com/vod/kasparovchess?sort_by=view_count`
+`myserver.com/vod/channelname?sort_by=view_count`
 
 to sort by views descending:
 
-`myserver.com/vod/kasparovchess?sort_by=view_count&desc=true`
+`myserver.com/vod/channelname?sort_by=view_count&desc=true`
+
+### only links mode
+
+if you only listen to the episodes in the twitch app or website you can enable the `links_only=true` to skip the fetching of the audio stream, doing so will make the feed generation almost instant, so it's highly raccomanded to enable the option if you don't use the included audio feed
+
+example: `myserver.com/vod/channelname?links_only=True`
+
+### mixing options
+
+to mix options just add `&` beetween them
+
+example: `myserver.com/vod/channelname?sort_by=view_count&desc=true&links_only=true&include_streaming=True`
 
 ## install with docker
 before doing anything be sure to get your SECRET and CLIENT ID from twitch
