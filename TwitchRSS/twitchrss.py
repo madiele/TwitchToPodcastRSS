@@ -217,6 +217,7 @@ def process_channel(channel, request_args):
     include_streaming = True if request_args.get("include_streaming", "False").lower() == "true" else False
     sort_by = request_args.get("sort_by", "published_at").lower()
     desc = True if request_args.get("desc", "False").lower() == "true" else False
+    links_only = True if request_args.get("links_only", "False").lower() == "true" else False
 
     try:
         user_data = json.loads(fetch_channel(channel))['data'][0]
@@ -228,7 +229,7 @@ def process_channel(channel, request_args):
         logging.error(e)
         abort(404)
 
-    rss_data = construct_rss(user_data, vods_data, streams_data, include_streaming, sort_by=sort_by, desc_sort=desc)
+    rss_data = construct_rss(user_data, vods_data, streams_data, include_streaming, sort_by=sort_by, desc_sort=desc, links_only=links_only)
     headers = {'Content-Type': 'text/xml'}
 
     if 'gzip' in request.headers.get("Accept-Encoding", ''):
@@ -321,7 +322,7 @@ def fetch_json(id, url_template):
     abort(503)
 
 
-def construct_rss(user, vods, streams, include_streams=False, sort_by="published_at", desc_sort=False):
+def construct_rss(user, vods, streams, include_streams=False, sort_by="published_at", desc_sort=False, links_only=False):
     """returns the RSS for the given inputs.
 
     Args:
@@ -331,12 +332,15 @@ def construct_rss(user, vods, streams, include_streams=False, sort_by="published
       include_streams: True if the streams should be included (Default value = False)
       sort_by: the key to sort by, the keys are the same used by the twitch API https://dev.twitch.tv/docs/api/reference#get-videos
       desc_sort: True if the sort must be done in ascending oreder
+      links_only: if True the audio stream will not be fetched, makes the feed generation very fast
 
     Returns: fully formatted RSS string
 
     """
 
     logging.debug("processing channel")
+    if links_only:
+        logging.debug("links_only enabled, not fetching audio streams")
     try:
         channel_name = user['login']
         display_name = user['display_name']
@@ -415,34 +419,35 @@ def construct_rss(user, vods, streams, include_streams=False, sort_by="published
                 if vod['description']:
                     description += "<br/>" + vod['description']
 
-                # prevent get_audiostream_url to be run concurrenty with the same paramenter
-                # this way the next hit on get_audiostream_url will use the cache instead
+                if not links_only:
+                    # prevent get_audiostream_url to be run concurrenty with the same paramenter
+                    # this way the next hit on get_audiostream_url will use the cache instead
 
-                global streamUrl_queues
-                if link not in streamUrl_queues:
-                    q = streamUrl_queues[link] = {'lock': RLock(), 'count': 0}
-                else:
-                    q = streamUrl_queues[link]
+                    global streamUrl_queues
+                    if link not in streamUrl_queues:
+                        q = streamUrl_queues[link] = {'lock': RLock(), 'count': 0}
+                    else:
+                        q = streamUrl_queues[link]
 
-                q['count'] = q['count'] + 1
-                q['lock'].acquire()
+                    q['count'] = q['count'] + 1
+                    q['lock'].acquire()
 
-                try:
-                    stream_url = get_audiostream_url(link)
-                except NoAudioStreamException as e:
-                    logging.error(e)
-                    description += "TwitchToPodcastRSS ERROR: could not fetch an audio stream for this vod,"
-                    description += "try refreshing the RSS feed later"
-                    stream_url = None
+                    try:
+                        stream_url = get_audiostream_url(link)
+                    except NoAudioStreamException as e:
+                        logging.error(e)
+                        description += "TwitchToPodcastRSS ERROR: could not fetch an audio stream for this vod,"
+                        description += "try refreshing the RSS feed later"
+                        stream_url = None
 
-                q['count'] = q['count'] - 1
-                if q['count'] == 0:
-                    del streamUrl_queues[link]
+                    q['count'] = q['count'] - 1
+                    if q['count'] == 0:
+                        del streamUrl_queues[link]
 
-                q['lock'].release()
+                    q['lock'].release()
 
-                if stream_url:
-                    item.enclosure(stream_url, type='audio/mpeg')
+                    if stream_url:
+                        item.enclosure(stream_url, type='audio/mpeg')
 
                 if new_release_available():
                     description += '<br><p><a href="https://github.com/%s/releases">new version of TwitchToPodcastRSS available!</a></p>' % GITHUB_REPO
