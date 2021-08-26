@@ -113,6 +113,9 @@ edit with PORT,SECRET and CLIENT_ID
 
 `sudo docker run -d --restart always -p <PORT>:80 -e TWITCH_SECRET="<YOUR_SECRET>" -e TWITCH_CLIENT_ID="<YOUR_CLIENT_ID>" TwitchToPodcastRSS`
 
+## install without docker
+since this is a flask app most methods of deployment listed [here](https://flask.palletsprojects.com/en/2.0.x/deploying/index.html) should work too
+
 ### About
 the original [twitchRSS](https://github.com/lzeke0/TwitchRSS) has been developed by László Zeke.
 Later modified into [TwitchToPodcastRSS](https://github.com/madiele/TwitchToPodcastRSS) by Mattia Di Eleuterio
