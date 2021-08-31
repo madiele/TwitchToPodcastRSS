@@ -156,9 +156,18 @@ def get_audiostream_url(vod_url):
     """
     logging.debug("looking up audio url for " + vod_url)
     try:
-        stream_url = streamlink_session.streams(vod_url).get('audio').to_url()
-    except (AttributeError, PluginError) as e:
-        logging.error("streamlink has returned an error:")
+        vod = streamlink_session.streams(vod_url)
+
+        if 'audio' not in vod:
+            #TODO: cache the error in some way to prevent calling streamlink on the same vod
+            #      so to reduce wasted api calls
+            logging.debug("the selected vod does not have an audio stream")
+            raise NoAudioStreamException
+
+        stream_url = vod.get('audio').to_url()
+
+    except PluginError as e:
+        logging.error("streamlink has returned an error for url " + str(vod_url) + ":")
         logging.error(e)
         raise NoAudioStreamException
     return stream_url
