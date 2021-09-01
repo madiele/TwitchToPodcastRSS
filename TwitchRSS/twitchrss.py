@@ -162,14 +162,14 @@ def get_audiostream_url(vod_url):
             #TODO: cache the error in some way to prevent calling streamlink on the same vod
             #      so to reduce wasted api calls
             logging.debug("the selected vod does not have an audio stream")
-            raise NoAudioStreamException
+            raise NoAudioStreamException("no audio stream available")
 
         stream_url = vod.get('audio').to_url()
 
     except PluginError as e:
         logging.error("streamlink has returned an error for url " + str(vod_url) + ":")
         logging.error(e)
-        raise NoAudioStreamException
+        raise NoAudioStreamException("could not process the audio stream")
     return stream_url
 
 
@@ -444,9 +444,9 @@ def construct_rss(user, vods, streams, include_streams=False, sort_by="published
                     try:
                         stream_url = get_audiostream_url(link)
                     except NoAudioStreamException as e:
-                        logging.error(e)
                         description += "TwitchToPodcastRSS ERROR: could not fetch an audio stream for this vod,"
                         description += "try refreshing the RSS feed later"
+                        description += "<br>reason: " + str(e)
                         stream_url = None
 
                     q['count'] = q['count'] - 1
