@@ -155,22 +155,30 @@ def get_audiostream_url(vod_url):
 
     """
     logging.debug("looking up audio url for " + vod_url)
-    try:
-        vod = streamlink_session.streams(vod_url)
+    tries = 0;
+    max_tries = 3;
+    while tries < max_tries:
+        tries = tries + 1
+        try:
+            vod = streamlink_session.streams(vod_url)
 
-        if 'audio' not in vod:
-            #TODO: cache the error in some way to prevent calling streamlink on the same vod
-            #      so to reduce wasted api calls
-            logging.debug("the selected vod does not have an audio stream")
-            raise NoAudioStreamException("no audio stream available")
+            if 'audio' not in vod:
+                #TODO: cache the error in some way to prevent calling streamlink on the same vod
+                #      so to reduce wasted api calls
+                logging.debug("the selected vod does not have an audio stream")
+                raise NoAudioStreamException("no audio stream available")
 
-        stream_url = vod.get('audio').to_url()
+            stream_url = vod.get('audio').to_url()
+            return stream_url
 
-    except PluginError as e:
-        logging.error("streamlink has returned an error for url " + str(vod_url) + ":")
-        logging.error(e)
-        raise NoAudioStreamException("could not process the audio stream")
-    return stream_url
+        except PluginError as e:
+            logging.error("streamlink has returned an error for url " + str(vod_url) + ":")
+            logging.error(e)
+            if tries >= max_tries:
+                raise NoAudioStreamException("could not process the audio stream")
+
+    raise NoAudioStreamException("could not get the audio stream for uknown reason")
+
 
 
 @app.route('/vod/<string:channel>', methods=['GET', 'HEAD'])
