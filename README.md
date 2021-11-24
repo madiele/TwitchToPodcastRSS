@@ -1,7 +1,5 @@
 based on [twitchRSS](https://github.com/lzeke0/TwitchRSS)
 
-# IMPORTANT: update to v1.1.2+, previous versions contain a memory leak 
-
 # TwitchToPodcastRSS
 
 converts a twitch channel in a full-blown podcast
