@@ -102,9 +102,10 @@ def new_release_available():
         else:
             logging.warning("new version avalible:" + TTP_VERSION + " -> " + remote_version)
             return True
-    except Exception as e:
+    except urllib.error.HTTPError as e:
         logging.warning('could not check for updates, reason:')
         logging.warning(e)
+        logging.warning(e.read().decode())
     return False
 
 
@@ -133,8 +134,9 @@ def authorize():
             TWITCH_OAUTH_EXPIRE_EPOCH = int(r['expires_in']) + round(time.time())
             logging.debug("oauth token aquired")
             return
-        except Exception as e:
+        except urllib.error.HTTPError as e:
             logging.warning("Fetch exception caught: %s" % e)
+            logging.warning(e.read().decode())
             retries += 1
     logging.error("could not get oauth token from twitch")
     abort(503)
@@ -332,8 +334,9 @@ def fetch_json(id, url_template):
                 logging.debug('Fetched gzip content')
                 return gzip.decompress(result.read())
             return result.read()
-        except Exception as e:
+        except urllib.error.HTTPError as e:
             logging.warning("Fetch exception caught: %s" % e)
+            logging.warning(e.read().decode())
             retries += 1
     logging.error("max retries reached, could not get resource, id: " + id)
     abort(503)
