@@ -1,3 +1,5 @@
+# WARNING: this google app engine deployment method is from the original lzeke0/TwitchRSS repo from which this repo was forked
+# it should tecnically work, but it's untested and not supported for this repo
 runtime: python38
 
 entrypoint: gunicorn -b :$PORT -k gthread --threads 2 twitchrss:app

@@ -2,24 +2,59 @@ based on [twitchRSS](https://github.com/lzeke0/TwitchRSS)
 
 # TwitchToPodcastRSS
 
-converts a twitch channel in a full blown podcast
+converts a twitch channel in a full-blown podcast
 <a label="example of it working with podcast addict" href="url"><img src="https://user-images.githubusercontent.com/4585690/129647659-b3bec66b-4cbb-408c-840c-9596f0c32dc2.jpg" align="left" height="400" ></a>
 ## Features:
-- copletly converts the vods in a proper podcast RSS that can be listen directly inside the client (if they support audio only m3u8 playback, tested working on podcast addict), no need for the twitch app
-- the descripion has a clickable image that opens the vod in the twitch app
+- completely converts the vods in a proper podcast RSS that can be listened directly inside the client (if they support audio only m3u8 playback, [podcast addict](https://play.google.com/store/apps/details?id=com.bambuna.podcastaddict&hl=en_US&gl=US) is the only app I found that has support for it), no need for the twitch app
+- the description has a clickable image that opens the vod in the twitch app
 - support for the new helix twitch API
-- no trascoding or server side stream processing is done, the vods are not downloaded on the server, this also means that that the episodes are only avalible until they get deleted from twitch (2 weeks - 2 months in general)
+- no transcoding or server side stream processing is done, the vods are not downloaded on the server, this also means that the episodes are only available until they get deleted from twitch (2 weeks - 2 months in general)
 
 ## Known issues:
-- first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generaly done in backgroud by the podcast clients this should not be a huge limitation, just give it time
-- if the vod is unfinished due to the streamer still being online when your clients updates the duration told by the app will smaller than the finished stream duration
+- first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generally done in background by the podcast clients this should not be a huge limitation, just give it time. if you only listen/watch inside the twitch app or website be sure to enable [links only mode](#only-links-mode) to make the feed generation much faster
 
 ## Usage
 when you host this just add /vod/channelName to your server path and an RSS will be generated
 
-example: myserver.com/vod/channelname
+example: `myserver.com/vod/channelname`
 
 just add the link to your podcast client
+
+### show currently streaming
+
+unfinished streams are not included, but if you want them to just add `?include_streaming=True` to the feed URL
+
+example: `myserver.com/vod/channelname?include_streaming=True`
+
+### sorting
+
+if you use a feed reader you can order the feed by any field suppored by twitch, the list of fields to sort by can be found [here](https://dev.twitch.tv/docs/api/reference#get-videos) in the response field section
+
+by default it sorts by the published_at field
+
+to enable sorting just add `sort_by=[key]` or/and `desc=True` to the URL
+
+some examples:
+
+to sort by views:
+
+`myserver.com/vod/channelname?sort_by=view_count`
+
+to sort by views descending:
+
+`myserver.com/vod/channelname?sort_by=view_count&desc=true`
+
+### only links mode
+
+if you only listen to the episodes in the twitch app or website you can enable the `links_only=true` to skip the fetching of the audio stream, doing so will make the feed generation almost instant, so it's highly raccomanded to enable the option if you don't use the included audio feed
+
+example: `myserver.com/vod/channelname?links_only=True`
+
+### mixing options
+
+to mix options just add `&` beetween them
+
+example: `myserver.com/vod/channelname?sort_by=view_count&desc=true&links_only=true&include_streaming=True`
 
 ## install with docker
 before doing anything be sure to get your SECRET and CLIENT ID from twitch
@@ -38,17 +73,21 @@ images for raspberry pis are included
 
 edit `docker-compose.yml` with your PORT, SECRET and CLIENT_ID
 
-`nano TwitchToPodcastRSS`
+`nano docker-compose.yml`
 
 save and
 
 `sudo docker-compose up -d`
 
-#### update
+#### when you want to update:
 
-run this inside the folder with `docker-compose.yml` inside
+run this inside the folder with `docker-compose.yml`
 
-`sudo docker-compose pull  && docker-compose up -d`
+`sudo docker-compose pull && sudo docker-compose up -d`
+
+then run this to delete the old version form your system (note: this will also delete any other unused image you have)
+
+`sudo docker system prune`
 
 ### pull the precompiled image from hub.docker.com
   
@@ -71,6 +110,9 @@ edit with PORT,SECRET and CLIENT_ID
 edit with PORT,SECRET and CLIENT_ID
 
 `sudo docker run -d --restart always -p <PORT>:80 -e TWITCH_SECRET="<YOUR_SECRET>" -e TWITCH_CLIENT_ID="<YOUR_CLIENT_ID>" TwitchToPodcastRSS`
+
+## install without docker
+since this is a flask app most methods of deployment listed [here](https://flask.palletsprojects.com/en/2.0.x/deploying/index.html) should work too
 
 ### About
 the original [twitchRSS](https://github.com/lzeke0/TwitchRSS) has been developed by László Zeke.
