@@ -1,7 +1,11 @@
 version: '3.3'
 services:
     TwitchToPodcastRSS:
+        build:
+            context: https://github.com/madiele/TwitchToPodcastRSS.git
+        image: madiele/twitch_to_podcast_rss
         restart: unless-stopped
+        container_name: twitchToPodcastRSS
         ports:
             - '<PORT>:80'
         environment:
@@ -12,4 +16,4 @@ services:
             #- SERVER_NAME = myserver.com:80 #optional
             #- SUB_FOLDER = /ttprss #optional
             #- DEBUG=1 #optional
-        image: madiele/twitch_to_podcast_rss
+            
