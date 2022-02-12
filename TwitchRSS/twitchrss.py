@@ -221,7 +221,6 @@ def transcode(vod_id):
     bitrate = TRANSCODE_BITRATE
     duration = int(round(float(playlist.data['duration'])))
     length = int(round(bitrate/8 * duration))
-    logging.info('requested transcoding for:' + stream_url)
 
     response = Response(mimetype = "audio/mpeg")
 
@@ -304,6 +303,9 @@ def transcode(vod_id):
                 logging.debug("active_transcodes: " + str(active_transcodes.keys))
 
     response.response = stream_with_context(generate())
+
+    if start_time == 0:
+        logging.info('requested transcoding for:' + stream_url)
 
     return response
 
