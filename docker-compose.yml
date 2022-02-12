@@ -7,4 +7,9 @@ services:
         environment:
             - TWITCH_SECRET=<YOUR_SECRET>
             - TWITCH_CLIENT_ID=<YOUR_CLIENT_ID>
+            - TRANSCODE = False
+            #- TRANSCODE_BITRATE = 160000 # encodes to 160k mp3 #optional
+            #- SERVER_NAME = myserver.com:80 #optional
+            #- SUB_FOLDER = /ttprss #optional
+            #- DEBUG=1 #optional
         image: madiele/twitch_to_podcast_rss

@@ -5,10 +5,11 @@ based on [twitchRSS](https://github.com/lzeke0/TwitchRSS)
 converts a twitch channel in a full-blown podcast
 <a label="example of it working with podcast addict" href="url"><img src="https://user-images.githubusercontent.com/4585690/129647659-b3bec66b-4cbb-408c-840c-9596f0c32dc2.jpg" align="left" height="400" ></a>
 ## Features:
-- completely converts the vods in a proper podcast RSS that can be listened directly inside the client (if they support audio only m3u8 playback, [podcast addict](https://play.google.com/store/apps/details?id=com.bambuna.podcastaddict&hl=en_US&gl=US) is the only app I found that has support for it), no need for the twitch app
+- completely converts the vods in a proper podcast RSS that can be listened directly inside the client (no trascoding is required if they support audio only m3u8 playback, [podcast addict](https://play.google.com/store/apps/details?id=com.bambuna.podcastaddict&hl=en_US&gl=US) is the only app I found that has support for it), no need for the twitch app
 - the description has a clickable image that opens the vod in the twitch app
 - support for the new helix twitch API
-- no transcoding or server side stream processing is done, the vods are not downloaded on the server, this also means that the episodes are only available until they get deleted from twitch (2 weeks - 2 months in general)
+- the vods are not downloaded on the server, this means that the episodes are only available until they get deleted from twitch (2 weeks - 2 months in general)
+- if your app does not support m3u8 stream playback then you can enable transcoding to mp3 (note that this is resource intensive)
 
 ## Known issues:
 - first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generally done in background by the podcast clients this should not be a huge limitation, just give it time. if you only listen/watch inside the twitch app or website be sure to enable [links only mode](#only-links-mode) to make the feed generation much faster
@@ -20,14 +21,17 @@ example: `myserver.com/vod/channelname`
 
 just add the link to your podcast client
 
-### show currently streaming
+### transcoding
+to enable transcoding just add `?transcode=true` to your url
 
+example: `myserver.com/vod/channelname?transcode=True`
+
+### show currently streaming
 unfinished streams are not included, but if you want them to just add `?include_streaming=True` to the feed URL
 
 example: `myserver.com/vod/channelname?include_streaming=True`
 
 ### sorting
-
 if you use a feed reader you can order the feed by any field suppored by twitch, the list of fields to sort by can be found [here](https://dev.twitch.tv/docs/api/reference#get-videos) in the response field section
 
 by default it sorts by the published_at field
@@ -72,6 +76,7 @@ images for raspberry pis are included
 `cd TwitchToPodcastRSS`
 
 edit `docker-compose.yml` with your PORT, SECRET and CLIENT_ID
+(in the file you will find also optional parameters like sub_folder for use with reverse proxies, define a unique server name, and so on)
 
 `nano docker-compose.yml`
 
