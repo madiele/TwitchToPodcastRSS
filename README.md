@@ -16,6 +16,7 @@ converts a twitch channel in a full-blown podcast
 - when transcoding seeking to the last minute or so can be buggy, I have no idea why, help is welcome
 - to improve performance you can only have one ongoing transcoding of the same vod on the same client at once
 - when transcoding seeking around too fast can be buggy
+- downloading only works with transcoding enabled (unless the client supports m3u8 download, which is rare)
 
 ## Usage
 when you host this just add /vod/channelName to your server path and an RSS will be generated
