@@ -1,7 +1,7 @@
 version: '3.3'
 services:
     TwitchToPodcastRSS:
-        restart: always
+        restart: unless-stopped
         ports:
             - '<PORT>:80'
         environment:
