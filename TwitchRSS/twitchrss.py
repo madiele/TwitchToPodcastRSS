@@ -256,7 +256,7 @@ def transcode(vod_id):
     logging.debug("duration in seconds: " + str(duration))
     logging.debug("byte length: " + str(length))
 
-    def get_transcode_id ():
+    def get_transcode_id():
         return str(session_id) + "_" + str(vod_id)
 
     def generate():
@@ -298,7 +298,7 @@ def transcode(vod_id):
                     break
         finally:
             process.kill()
-            if get_transcode_id in active_transcodes:
+            if get_transcode_id() in active_transcodes:
                 active_transcodes.pop(get_transcode_id())
                 logging.debug("active_transcodes: " + str(active_transcodes.keys))
 
