@@ -40,7 +40,7 @@ import pytz
 import m3u8
 from cachetools import cached, TTLCache
 from feedgen.feed import FeedGenerator
-from flask import abort, Flask, request, render_template, stream_with_context, Response, url_for, current_app
+from flask import abort, Flask, request, render_template, stream_with_context, Response, url_for
 from git import Repo
 from ratelimit import limits, sleep_and_retry
 from streamlink import Streamlink

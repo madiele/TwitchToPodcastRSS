@@ -16,4 +16,4 @@ COPY ./TwitchRSS/requirements.txt .
 RUN pip3 install --no-index --find-links=/pip_wheels -r requirements.txt
 COPY . /
 WORKDIR /TwitchRSS
-ENTRYPOINT ["gunicorn", "-b",  ":80", "-w", "1", "--threads", "5", "-k", "gthread", "twitchrss:app"]
+ENTRYPOINT ["/bin/bash", "./entrypoint.sh"]

@@ -1,0 +1,7 @@
+env/
+tags/
+*/*.mp3
+*/debug.sh
+*/__pycache__
+.env
+*/.env
