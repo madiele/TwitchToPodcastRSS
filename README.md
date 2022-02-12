@@ -12,7 +12,10 @@ converts a twitch channel in a full-blown podcast
 - if your app does not support m3u8 stream playback then you can enable transcoding to mp3 (note that this is resource intensive)
 
 ## Known issues:
-- first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generally done in background by the podcast clients this should not be a huge limitation, just give it time. if you only listen/watch inside the twitch app or website be sure to enable [links only mode](#only-links-mode) to make the feed generation much faster
+- (dos not apply for transcoding) first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generally done in background by the podcast clients this should not be a huge limitation, just give it time. if you only listen/watch inside the twitch app or website be sure to enable [links only mode](#only-links-mode) to make the feed generation much faster
+- when transcoding seeking to the last minute or so can be buggy, I have no idea why, help is welcome
+- to improve performance you can only have one ongoing transcoding of the same vod on the same client at once
+- when transcoding seeking around too fast can be buggy
 
 ## Usage
 when you host this just add /vod/channelName to your server path and an RSS will be generated
