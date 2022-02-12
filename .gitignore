@@ -102,3 +102,5 @@ $RECYCLE.BIN/
 *.lnk
 
 *.gcloudignore
+tags
+*/debug.sh
