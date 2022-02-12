@@ -10,6 +10,7 @@ converts a twitch channel in a full-blown podcast
 - support for the new helix twitch API
 - the vods are not downloaded on the server, this means that the episodes are only available until they get deleted from twitch (2 weeks - 2 months in general)
 - if your app does not support m3u8 stream playback then you can enable transcoding to mp3 (note that this is resource intensive)
+- when playing transcoded vod mp3 it's possible to hear audio skipping 1-2 second in time every once in a while, this is caused by the connection dropping when downloading, and due to a thecnical limitation can't really be fixed (twitch gives a variable bitrate stream with seek data in seconds, but the clients wants a fixed bitrate strea with seek data in bytes, when converting some rounding errors cause the audo to glitch)
 
 ## Known issues:
 - (dos not apply for transcoding) first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generally done in background by the podcast clients this should not be a huge limitation, just give it time. if you only listen/watch inside the twitch app or website be sure to enable [links only mode](#only-links-mode) to make the feed generation much faster
