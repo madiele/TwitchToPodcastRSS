@@ -64,7 +64,7 @@ GITHUB_REPO = 'madiele/TwitchToPodcastRSS'
 GIT_ROOT = '..'
 GIT_REPO = Repo(GIT_ROOT)
 TRANSCODE = False
-TRANSCODE_BITRATE = 160000
+TRANSCODE_BITRATE = 128000
 if environ.get('TRANSCODE') and environ.get('TRANSCODE').lower() == 'true':
     TRANSCODE = True
 if environ.get('TRANSCODE_BITRATE'):

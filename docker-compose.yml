@@ -16,4 +16,3 @@ services:
             #- SERVER_NAME =myserver.com:80 #optional
             #- SUB_FOLDER =/ttprss #optional
             #- DEBUG=1 #optional
-            
