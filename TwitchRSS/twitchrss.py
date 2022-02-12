@@ -40,11 +40,13 @@ import pytz
 import m3u8
 from cachetools import cached, TTLCache
 from feedgen.feed import FeedGenerator
-from flask import abort, Flask, request, render_template, stream_with_context, Response
+from flask import abort, Flask, request, render_template, stream_with_context, Response, url_for, current_app
 from git import Repo
 from ratelimit import limits, sleep_and_retry
 from streamlink import Streamlink
 from streamlink.exceptions import PluginError
+
+app = Flask(__name__)
 
 VOD_URL_TEMPLATE = 'https://api.twitch.tv/helix/videos?sort=time&user_id=%s&type=all'
 USERID_URL_TEMPLATE = 'https://api.twitch.tv/helix/users?login=%s'
@@ -61,6 +63,15 @@ TWITCH_OAUTH_EXPIRE_EPOCH = 0
 GITHUB_REPO = 'madiele/TwitchToPodcastRSS'
 GIT_ROOT = '..'
 GIT_REPO = Repo(GIT_ROOT)
+TRANSCODE = False
+if environ.get('TRANSCODE') and environ.get('TRANSCODE').lower() == 'true':
+    TRANSCODE = True
+
+if environ.get('SERVER_NAME'):
+    app.config['SERVER_NAME'] = environ.get('SERVER_NAME')
+if environ.get('SUB_FOLDER'):
+    app.config['APPLICATION_ROOT'] = environ.get('SUB_FOLDER')
+
 # finds what's the lastes tagged release is locally
 TTP_VERSION = sorted(GIT_REPO.tags, key=lambda t: t.commit.committed_datetime)[-1].name
 
@@ -75,7 +86,6 @@ if not TWITCH_CLIENT_ID:
 if not TWITCH_SECRET:
     raise Exception("Twitch API secret env variable not set.")
 
-app = Flask(__name__)
 streamlink_session = Streamlink(options=None)
 streamUrl_queues = {}
 cache_locks = {
@@ -188,7 +198,10 @@ active_transcodes = {}
 next_transcode_id = random.randint(0, 99999)
 @app.route('/transcode/<string:vod_id>.mp3', methods=['GET'])
 def transcode(vod_id):
+    """given a vod_id it generates an mp3 version of it
 
+        Returns: the ffmpeg transcoded output to the client
+    """
     session_id = None
     stream_url = 'https://www.twitch.tv/videos/' + vod_id
     start_time = 0
@@ -242,7 +255,7 @@ def transcode(vod_id):
     logging.debug("duration in seconds: " + str(duration))
     logging.debug("byte length: " + str(length))
 
-    def get_trascode_id ():
+    def get_transcode_id ():
         return str(session_id) + "_" + str(vod_id)
 
     def generate():
@@ -250,16 +263,16 @@ def transcode(vod_id):
         startTime = time.time()
         sentBurst = False
         stream_url = 'https://www.twitch.tv/videos/' + vod_id
-        if get_trascode_id() in active_transcodes:
-            logging.debug("killing old trascoding process: " + get_trascode_id())
-            active_transcodes[get_trascode_id()].kill()
-            active_transcodes.pop(get_trascode_id())
+        if get_transcode_id() in active_transcodes:
+            logging.debug("killing old trascoding process: " + get_transcode_id())
+            active_transcodes[get_transcode_id()].kill()
+            active_transcodes.pop(get_transcode_id())
 
 
         ffmpeg_command = ["ffmpeg", "-ss", str(start_time), "-i", m3u8_url, "-acodec" ,"libmp3lame", "-ab", str(encoding_bitrate/1000)+ "k", "-f", "mp3", "pipe:stdout"]
         logging.debug(ffmpeg_command)
         process = subprocess.Popen(ffmpeg_command, stdout = subprocess.PIPE, stderr = subprocess.PIPE, bufsize = -1)
-        active_transcodes[get_trascode_id()] = process
+        active_transcodes[get_transcode_id()] = process
         logging.debug("active transcodes: " + str(active_transcodes.keys()))
 
 
@@ -280,12 +293,12 @@ def transcode(vod_id):
                 if isinstance(process.returncode, int):
                     if process.returncode > 0:
                         logging.error("ffmpeg error")
-                        logging.error(process.stderr)
+                        logging.error(process.stderr.read())
                     break
         finally:
             process.kill()
-            if get_trascode_id in active_transcodes:
-                active_transcodes.pop(get_trascode_id())
+            if get_transcode_id in active_transcodes:
+                active_transcodes.pop(get_transcode_id())
                 logging.debug("active_transcodes: " + str(active_transcodes.keys))
 
     response.response = stream_with_context(generate())
@@ -304,7 +317,7 @@ def vod(channel):
     """
 
     if CHANNEL_FILTER.match(channel):
-        return process_channel(channel, request.args)
+        return process_channel(channel, request)
     else:
         abort(404)
 
@@ -320,7 +333,7 @@ def vodonly(channel):
 
     """
     if CHANNEL_FILTER.match(channel):
-        return process_channel(channel, request.args)
+        return process_channel(channel, request)
     else:
         abort(404)
 
@@ -331,21 +344,22 @@ def index():
     return render_template('index.html')
 
 
-def process_channel(channel, request_args):
+def process_channel(channel, request):
     """process the given channel.
 
     Args:
       channel: the channel string given in the request
-      request_args: the arguments of the http request
+      request: the request object from flask
 
     Returns:
       rss_data: the fully formed rss feed
 
     """
-    include_streaming = True if request_args.get("include_streaming", "False").lower() == "true" else False
-    sort_by = request_args.get("sort_by", "published_at").lower()
-    desc = True if request_args.get("desc", "False").lower() == "true" else False
-    links_only = True if request_args.get("links_only", "False").lower() == "true" else False
+    include_streaming = True if request.args.get("include_streaming", "False").lower() == "true" else False
+    sort_by = request.args.get("sort_by", "published_at").lower()
+    desc = True if request.args.get("desc", "False").lower() == "true" else False
+    links_only = True if request.args.get("links_only", "False").lower() == "true" else False
+    transcode = True if request.args.get("transcode", str(TRANSCODE)).lower() == "true" else False
 
     try:
         user_data = json.loads(fetch_channel(channel))['data'][0]
@@ -357,7 +371,7 @@ def process_channel(channel, request_args):
         logging.error(e)
         abort(404)
 
-    rss_data = construct_rss(user_data, vods_data, streams_data, include_streaming, sort_by=sort_by, desc_sort=desc, links_only=links_only)
+    rss_data = construct_rss(user_data, vods_data, streams_data, include_streaming, sort_by=sort_by, desc_sort=desc, links_only=links_only, transcode = transcode, request = request)
     headers = {'Content-Type': 'text/xml'}
 
     if 'gzip' in request.headers.get("Accept-Encoding", ''):
@@ -451,7 +465,7 @@ def fetch_json(id, url_template):
     abort(503)
 
 
-def construct_rss(user, vods, streams, include_streams=False, sort_by="published_at", desc_sort=False, links_only=False):
+def construct_rss(user, vods, streams, include_streams=False, sort_by="published_at", desc_sort=False, links_only=False, transcode = TRANSCODE, request=None):
     """returns the RSS for the given inputs.
 
     Args:
@@ -551,29 +565,31 @@ def construct_rss(user, vods, streams, include_streams=False, sort_by="published
                 if not links_only:
                     # prevent get_audiostream_url to be run concurrenty with the same paramenter
                     # this way the next hit on get_audiostream_url will use the cache instead
+                    if not transcode:
+                        global streamUrl_queues
+                        if link not in streamUrl_queues:
+                            q = streamUrl_queues[link] = {'lock': RLock(), 'count': 0}
+                        else:
+                            q = streamUrl_queues[link]
 
-                    global streamUrl_queues
-                    if link not in streamUrl_queues:
-                        q = streamUrl_queues[link] = {'lock': RLock(), 'count': 0}
+                        q['count'] = q['count'] + 1
+                        q['lock'].acquire()
+
+                        try:
+                            stream_url = get_audiostream_url(link)
+                        except NoAudioStreamException as e:
+                            description += "TwitchToPodcastRSS ERROR: could not fetch an audio stream for this vod,"
+                            description += "try refreshing the RSS feed later"
+                            description += "<br>reason: " + str(e)
+                            stream_url = None
+
+                        q['count'] = q['count'] - 1
+                        if q['count'] == 0:
+                            del streamUrl_queues[link]
+
+                        q['lock'].release()
                     else:
-                        q = streamUrl_queues[link]
-
-                    q['count'] = q['count'] + 1
-                    q['lock'].acquire()
-
-                    try:
-                        stream_url = get_audiostream_url(link)
-                    except NoAudioStreamException as e:
-                        description += "TwitchToPodcastRSS ERROR: could not fetch an audio stream for this vod,"
-                        description += "try refreshing the RSS feed later"
-                        description += "<br>reason: " + str(e)
-                        stream_url = None
-
-                    q['count'] = q['count'] - 1
-                    if q['count'] == 0:
-                        del streamUrl_queues[link]
-
-                    q['lock'].release()
+                        stream_url = url_for('transcode', vod_id = vod['id'], _external=True)
 
                     if stream_url:
                         item.enclosure(stream_url, type='audio/mpeg')
