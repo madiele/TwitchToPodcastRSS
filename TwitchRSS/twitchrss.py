@@ -26,6 +26,7 @@ from html import escape as html_escape
 from os import environ
 from threading import Lock, RLock
 from dateutil.parser import parse as parse_date
+import subprocess
 import datetime
 import gzip
 import json
@@ -33,11 +34,13 @@ import logging
 import re
 import time
 import urllib
+import random
 
 import pytz
+import m3u8
 from cachetools import cached, TTLCache
 from feedgen.feed import FeedGenerator
-from flask import abort, Flask, request, render_template
+from flask import abort, Flask, request, render_template, stream_with_context, Response
 from git import Repo
 from ratelimit import limits, sleep_and_retry
 from streamlink import Streamlink
@@ -181,7 +184,83 @@ def get_audiostream_url(vod_url):
 
     raise NoAudioStreamException("could not get the audio stream for uknown reason")
 
+active_transcodes = {}
+next_transcode_id = random.randint(0, 99999)
+@app.route('/transcode/<string:vod_id>.mp3', methods=['GET'])
+def transcode(vod_id):
+    global next_transcode_id
+    encoding_bitrate = 160000
+    start_time = 0
+    stream_url = 'https://www.twitch.tv/videos/' + vod_id
+    logging.info(stream_url)
+    m3u8_url = get_audiostream_url(stream_url)
 
+    def get_duration(line, lineno, data, state):
+        if line.startswith('#EXT-X-TWITCH-TOTAL-SECS'):
+            custom_tag = line.split(':')
+            data['duration'] = custom_tag[1].strip()
+
+    playlist = m3u8.load(m3u8_url, custom_tags_parser=get_duration)
+    bitrate = encoding_bitrate
+    duration = float(playlist.data['duration'])
+    length = int(round(bitrate/8 * duration))
+
+    if 'Range' in request.headers:
+        requested_bytes = request.headers.get("Range").split("=")[1].split("-")[0]
+        logging.debug("requested bytes: " + str(requested_bytes))
+        start_time = round((int(requested_bytes) / length) * duration)
+
+    logging.debug("start_time: " + str(start_time))
+    logging.debug("bitrate: " + str(bitrate))
+    logging.debug("duration: " + str(duration))
+    logging.debug("length: " + str(length))
+    logging.debug(m3u8_url)
+
+    def generate():
+        buff = []
+        startTime = time.time()
+        sentBurst = False
+        stream_url = 'https://www.twitch.tv/videos/' + vod_id
+        t_id = request.cookies.get('transcode_id')
+        logging.debug("transcode_id: " + str(t_id))
+        if t_id in active_transcodes:
+            logging.debug("killing old trascoding process")
+            logging.debug(active_transcodes[t_id])
+            #active_transcodes[t_id].kill()
+
+        ffmpeg_command = ["ffmpeg", "-ss", str(start_time), "-i", m3u8_url, "-acodec" ,"libmp3lame", "-ab", str(encoding_bitrate/1000)+ "k", "-f", "mp3", "pipe:stdout"]
+        logging.debug(ffmpeg_command)
+        process = subprocess.Popen(ffmpeg_command, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, bufsize = -1)
+        active_transcodes[t_id] = process
+
+
+        try:
+            while True:
+                line = process.stdout.read(1024)
+                buff.append(line)
+
+                if sentBurst is False and time.time() > startTime + 3 and len(buff) > 0:
+                    sentBurst = True
+
+                    for i in range(0, len(buff) - 2):
+                        yield buff.pop(0)
+                elif time.time() > startTime + 3 and len(buff) > 0:
+                    yield buff.pop(0)
+
+                process.poll()
+                if isinstance(process.returncode, int):
+                    if process.returncode > 0:
+                        logging.error("ffmpeg error")
+                    break
+        finally:
+            logging.debug("stream closed")
+#            process.kill()
+
+    response = Response(stream_with_context(generate()), mimetype = "audio/mpeg", headers = [['accept-ranges', 'bytes'], ['content-length', str(length)] ])
+    if request.cookies.get("transcode_id") is None:
+        response.set_cookie("transcode_id", str(next_transcode_id))
+    next_transcode_id += 1
+    return response
 
 @app.route('/vod/<string:channel>', methods=['GET', 'HEAD'])
 def vod(channel):
