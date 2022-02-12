@@ -65,10 +65,16 @@ GIT_ROOT = '..'
 GIT_REPO = Repo(GIT_ROOT)
 TRANSCODE = False
 TRANSCODE_BITRATE = 128000
+TRANSCODE_SECONDS_BUFFER = 120
+TRANSCODE_BANDWITH_kbps = 500
 if environ.get('TRANSCODE') and environ.get('TRANSCODE').lower() == 'true':
     TRANSCODE = True
 if environ.get('TRANSCODE_BITRATE'):
     TRANSCODE_BITRATE = int(environ.get('TRANSCODE_BITRATE'))
+if environ.get('TRANSCODE_SECONDS_BUFFER'):
+    TRANSCODE_SECONDS_BUFFER = int(environ.get('TRANSCODE_SECONDS_BUFFER'))
+if environ.get('TRANSCODE_BANDWITH_kbps'):
+    TRANSCODE_BANDWITH_kbps = float(environ.get('TRANSCODE_BANDWITH_kbps'))
 
 if environ.get('SERVER_NAME'):
     app.config['SERVER_NAME'] = environ.get('SERVER_NAME')
@@ -270,8 +276,8 @@ def transcode(vod_id):
             active_transcodes.pop(get_transcode_id())
 
 
-        ffmpeg_command = ["ffmpeg", "-ss", str(start_time), "-i", m3u8_url, "-acodec" ,"libmp3lame", "-ab", str(bitrate/1000)+ "k", "-f", "mp3", "pipe:stdout"]
-        logging.debug(ffmpeg_command)
+        ffmpeg_command = ["ffmpeg", "-ss", str(start_time), "-i", m3u8_url, "-acodec" ,"libmp3lame", "-ab", str(bitrate/1000)+ "k", "-f", "mp3", "-bufsize", str(TRANSCODE_SECONDS_BUFFER * bitrate), "-maxrate", str(TRANSCODE_BANDWITH_kbps) + "k", "pipe:stdout"]
+        logging.debug(re.sub(r"[\[|,|\]|\']", "", str(ffmpeg_command)))
         process = subprocess.Popen(ffmpeg_command, stdout = subprocess.PIPE, stderr = subprocess.PIPE, bufsize = -1)
         active_transcodes[get_transcode_id()] = process
         logging.debug("active transcodes: " + str(active_transcodes.keys()))
@@ -282,13 +288,7 @@ def transcode(vod_id):
                 line = process.stdout.read(1024)
                 buff.append(line)
 
-                if sentBurst is False and time.time() > startTime + 3 and len(buff) > 0:
-                    sentBurst = True
-
-                    for i in range(0, len(buff) - 2):
-                        yield buff.pop(0)
-                elif time.time() > startTime + 3 and len(buff) > 0:
-                    yield buff.pop(0)
+                yield buff.pop(0)
 
                 process.poll()
                 if isinstance(process.returncode, int):
@@ -300,7 +300,7 @@ def transcode(vod_id):
             process.kill()
             if get_transcode_id() in active_transcodes:
                 active_transcodes.pop(get_transcode_id())
-                logging.debug("active_transcodes: " + str(active_transcodes.keys))
+                logging.debug("active_transcodes: " + str(active_transcodes.keys()))
 
     response.response = stream_with_context(generate())
 
