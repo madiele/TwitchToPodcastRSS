@@ -188,11 +188,12 @@ active_transcodes = {}
 next_transcode_id = random.randint(0, 99999)
 @app.route('/transcode/<string:vod_id>.mp3', methods=['GET'])
 def transcode(vod_id):
-    global next_transcode_id
-    encoding_bitrate = 160000
-    start_time = 0
+
+    session_id = None
     stream_url = 'https://www.twitch.tv/videos/' + vod_id
-    logging.info(stream_url)
+    start_time = 0
+    requested_bytes = 0
+    encoding_bitrate = 160000
     m3u8_url = get_audiostream_url(stream_url)
 
     def get_duration(line, lineno, data, state):
@@ -201,37 +202,65 @@ def transcode(vod_id):
             data['duration'] = custom_tag[1].strip()
 
     playlist = m3u8.load(m3u8_url, custom_tags_parser=get_duration)
+
     bitrate = encoding_bitrate
-    duration = float(playlist.data['duration'])
+    duration = int(round(float(playlist.data['duration'])))
     length = int(round(bitrate/8 * duration))
+    logging.info('requested transcoding for:' + stream_url)
+
+    response = Response(mimetype = "audio/mpeg")
+
+    if request.cookies.get("session_id") is None:
+        global next_transcode_id
+        session_id = next_transcode_id
+        response.set_cookie("session_id", str(session_id))
+        next_transcode_id += 1
+    else:
+        session_id = int(request.cookies.get('session_id'))
+
 
     if 'Range' in request.headers:
-        requested_bytes = request.headers.get("Range").split("=")[1].split("-")[0]
+        requested_bytes = int(request.headers.get("Range").split("=")[1].split("-")[0])
         logging.debug("requested bytes: " + str(requested_bytes))
         start_time = round((int(requested_bytes) / length) * duration)
 
+
+    response.accept_ranges = 'bytes'
+    response.content_range = "bytes " + str(requested_bytes) + "-" + str(length-1) + "/" +str(length)
+    if start_time > 0:
+        response.status_code = 206
+        response.content_length = str(length - requested_bytes)
+        logging.debug("content range header: " + str(response.content_range))
+    else:
+        response.status_code = 200
+        response.content_length = str(length)
+
+    logging.debug("stream_url: " + stream_url)
+    logging.debug("m3u8_url: " + m3u8_url)
     logging.debug("start_time: " + str(start_time))
     logging.debug("bitrate: " + str(bitrate))
-    logging.debug("duration: " + str(duration))
-    logging.debug("length: " + str(length))
-    logging.debug(m3u8_url)
+    logging.debug("duration in seconds: " + str(duration))
+    logging.debug("byte length: " + str(length))
+
+    def get_trascode_id ():
+        return str(session_id) + "_" + str(vod_id)
 
     def generate():
         buff = []
         startTime = time.time()
         sentBurst = False
         stream_url = 'https://www.twitch.tv/videos/' + vod_id
-        t_id = request.cookies.get('transcode_id')
-        logging.debug("transcode_id: " + str(t_id))
-        if t_id in active_transcodes:
-            logging.debug("killing old trascoding process")
-            logging.debug(active_transcodes[t_id])
-            #active_transcodes[t_id].kill()
+        if get_trascode_id() in active_transcodes:
+            logging.debug("killing old trascoding process: " + get_trascode_id())
+            active_transcodes[get_trascode_id()].kill()
+            active_transcodes.pop(get_trascode_id())
+
 
         ffmpeg_command = ["ffmpeg", "-ss", str(start_time), "-i", m3u8_url, "-acodec" ,"libmp3lame", "-ab", str(encoding_bitrate/1000)+ "k", "-f", "mp3", "pipe:stdout"]
         logging.debug(ffmpeg_command)
-        process = subprocess.Popen(ffmpeg_command, stdout = subprocess.PIPE, stderr = subprocess.STDOUT, bufsize = -1)
-        active_transcodes[t_id] = process
+        process = subprocess.Popen(ffmpeg_command, stdout = subprocess.PIPE, stderr = subprocess.PIPE, bufsize = -1)
+        active_transcodes[get_trascode_id()] = process
+        logging.debug("active transcodes: " + str(active_transcodes.keys()))
 
 
         try:
@@ -251,15 +280,16 @@ def transcode(vod_id):
                 if isinstance(process.returncode, int):
                     if process.returncode > 0:
                         logging.error("ffmpeg error")
+                        logging.error(process.stderr)
                     break
         finally:
-            logging.debug("stream closed")
-#            process.kill()
+            process.kill()
+            if get_trascode_id in active_transcodes:
+                active_transcodes.pop(get_trascode_id())
+                logging.debug("active_transcodes: " + str(active_transcodes.keys))
 
-    response = Response(stream_with_context(generate()), mimetype = "audio/mpeg", headers = [['accept-ranges', 'bytes'], ['content-length', str(length)] ])
-    if request.cookies.get("transcode_id") is None:
-        response.set_cookie("transcode_id", str(next_transcode_id))
-    next_transcode_id += 1
+    response.response = stream_with_context(generate())
+
     return response
 
 @app.route('/vod/<string:channel>', methods=['GET', 'HEAD'])
