@@ -64,8 +64,11 @@ GITHUB_REPO = 'madiele/TwitchToPodcastRSS'
 GIT_ROOT = '..'
 GIT_REPO = Repo(GIT_ROOT)
 TRANSCODE = False
+TRANSCODE_BITRATE = 160000
 if environ.get('TRANSCODE') and environ.get('TRANSCODE').lower() == 'true':
     TRANSCODE = True
+if environ.get('TRANSCODE_BITRATE'):
+    TRANSCODE_BITRATE = int(environ.get('TRANSCODE_BITRATE'))
 
 if environ.get('SERVER_NAME'):
     app.config['SERVER_NAME'] = environ.get('SERVER_NAME')
@@ -195,7 +198,7 @@ def get_audiostream_url(vod_url):
     raise NoAudioStreamException("could not get the audio stream for uknown reason")
 
 active_transcodes = {}
-next_transcode_id = random.randint(0, 99999)
+next_transcode_id = random.randint(0, 999999)
 @app.route('/transcode/<string:vod_id>.mp3', methods=['GET'])
 def transcode(vod_id):
     """given a vod_id it generates an mp3 version of it
@@ -206,17 +209,16 @@ def transcode(vod_id):
     stream_url = 'https://www.twitch.tv/videos/' + vod_id
     start_time = 0
     requested_bytes = 0
-    encoding_bitrate = 160000
     m3u8_url = get_audiostream_url(stream_url)
 
-    def get_duration(line, lineno, data, state):
+    def get_duration_m3u8(line, lineno, data, state):
         if line.startswith('#EXT-X-TWITCH-TOTAL-SECS'):
             custom_tag = line.split(':')
             data['duration'] = custom_tag[1].strip()
 
-    playlist = m3u8.load(m3u8_url, custom_tags_parser=get_duration)
+    playlist = m3u8.load(m3u8_url, custom_tags_parser=get_duration_m3u8)
 
-    bitrate = encoding_bitrate
+    bitrate = TRANSCODE_BITRATE
     duration = int(round(float(playlist.data['duration'])))
     length = int(round(bitrate/8 * duration))
     logging.info('requested transcoding for:' + stream_url)
@@ -269,7 +271,7 @@ def transcode(vod_id):
             active_transcodes.pop(get_transcode_id())
 
 
-        ffmpeg_command = ["ffmpeg", "-ss", str(start_time), "-i", m3u8_url, "-acodec" ,"libmp3lame", "-ab", str(encoding_bitrate/1000)+ "k", "-f", "mp3", "pipe:stdout"]
+        ffmpeg_command = ["ffmpeg", "-ss", str(start_time), "-i", m3u8_url, "-acodec" ,"libmp3lame", "-ab", str(bitrate/1000)+ "k", "-f", "mp3", "pipe:stdout"]
         logging.debug(ffmpeg_command)
         process = subprocess.Popen(ffmpeg_command, stdout = subprocess.PIPE, stderr = subprocess.PIPE, bufsize = -1)
         active_transcodes[get_transcode_id()] = process
