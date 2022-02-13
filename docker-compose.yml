@@ -9,6 +9,7 @@ services:
         ports:
             - '<PORT>:80'
         environment:
+            - TZ=Europe/London
             - TWITCH_SECRET=<YOUR_SECRET>
             - TWITCH_CLIENT_ID=<YOUR_CLIENT_ID>
             - TRANSCODE =False
