@@ -277,8 +277,6 @@ def transcode(vod_id):
 
     def generate():
         buff = []
-        startTime = time.time()
-        sentBurst = False
         stream_url = 'https://www.twitch.tv/videos/' + vod_id
         if get_transcode_id() in active_transcodes:
             logging.debug("killing old trascoding process: " + get_transcode_id())
