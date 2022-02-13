@@ -211,11 +211,18 @@ def transcode(vod_id):
 
         Returns: the ffmpeg transcoded output to the client
     """
+    response = Response(mimetype = "audio/mpeg")
+
     session_id = None
     stream_url = 'https://www.twitch.tv/videos/' + vod_id
     start_time = 0
     requested_bytes = 0
-    m3u8_url = get_audiostream_url(stream_url)
+    try:
+        m3u8_url = get_audiostream_url(stream_url)
+    except NoAudioStreamException as e:
+        logging.info("requester stream could not be found: " + stream_url)
+        response.status_code = 404
+        return response
 
     def get_duration_m3u8(line, lineno, data, state):
         if line.startswith('#EXT-X-TWITCH-TOTAL-SECS'):
@@ -228,7 +235,6 @@ def transcode(vod_id):
     duration = int(round(float(playlist.data['duration'])))
     length = int(round(bitrate/8 * duration))
 
-    response = Response(mimetype = "audio/mpeg")
 
     if request.cookies.get("session_id") is None:
         global next_transcode_id
@@ -243,6 +249,10 @@ def transcode(vod_id):
         requested_bytes = int(request.headers.get("Range").split("=")[1].split("-")[0])
         logging.debug("requested bytes: " + str(requested_bytes))
         start_time = round((int(requested_bytes) / length) * duration)
+        if start_time > duration or requested_bytes > length:
+            logging.debug("requested range is longer than the media")
+            response.status_code = 416
+            return response
 
 
     response.accept_ranges = 'bytes'
@@ -281,15 +291,6 @@ def transcode(vod_id):
         process = subprocess.Popen(ffmpeg_command, stdout = subprocess.PIPE, stderr = subprocess.PIPE, bufsize = -1)
         active_transcodes[get_transcode_id()] = process
         logging.debug("active transcodes: " + str(active_transcodes.keys()))
-
-        for p in active_transcodes:
-            p.poll()
-            if isinstance(p.returncode, int):
-                if p.returncode > 0:
-                    logging.error("ffmpeg error")
-                    logging.error(p.stderr.read())
-                if get_transcode_id() in active_transcodes:
-                    active_transcodes.pop(get_transcode_id())
 
         try:
             while True:
