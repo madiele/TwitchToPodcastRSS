@@ -282,6 +282,14 @@ def transcode(vod_id):
         active_transcodes[get_transcode_id()] = process
         logging.debug("active transcodes: " + str(active_transcodes.keys()))
 
+        for p in active_transcodes:
+            p.poll()
+            if isinstance(p.returncode, int):
+                if p.returncode > 0:
+                    logging.error("ffmpeg error")
+                    logging.error(p.stderr.read())
+                if get_transcode_id() in active_transcodes:
+                    active_transcodes.pop(get_transcode_id())
 
         try:
             while True:
@@ -295,6 +303,8 @@ def transcode(vod_id):
                     if process.returncode > 0:
                         logging.error("ffmpeg error")
                         logging.error(process.stderr.read())
+                    if get_transcode_id() in active_transcodes:
+                        active_transcodes.pop(get_transcode_id())
                     break
         finally:
             process.kill()
