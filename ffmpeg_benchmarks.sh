@@ -1,5 +1,8 @@
 #!/bin/bash
-vod_url=$1
+if [ -z "$@" ]; then
+	echo usage: ffmpeg_benchmarks.sh VOD_URL [VOD_URL, ...]
+fi
+vod_url=$@
 bitrates="64k 128k 256k 320k"
 for vod in $vod_url; do
 	echo $vod :
