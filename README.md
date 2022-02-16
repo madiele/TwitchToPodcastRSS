@@ -19,6 +19,12 @@ converts a twitch channel in a full-blown podcast
 - downloading only works with transcoding enabled (unless the client supports m3u8 download, which is rare)
 - when playing transcoded vod's mp3 it's possible to hear audio skipping 1-2 second in time every once in a while, this is caused by the connection dropping when downloading, and due to a technical limitation can't really be fixed (twitch gives a variable bitrate stream with seek data in seconds, but the clients wants a fixed bitrate stream with seek data in bytes, when converting some rounding errors cause the audo to glitch)
 
+
+## Donations
+this is a passion project, and mostly made for myself, but if you want to gift me a pizza margherita feel free!
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/madiele)
+
 ## Usage
 when you host this just add /vod/channelName to your server path and an RSS will be generated
 
