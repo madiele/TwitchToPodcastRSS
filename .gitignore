@@ -104,3 +104,5 @@ $RECYCLE.BIN/
 *.gcloudignore
 tags
 */debug.sh
+twitchToPodcast.code-workspace
+.vscode/launch.json
