@@ -275,9 +275,22 @@ def transcode(vod_id):
     def get_transcode_id():
         return str(session_id) + "_" + str(vod_id)
 
+
     def generate():
         buff = []
         stream_url = 'https://www.twitch.tv/videos/' + vod_id
+
+        # kill any transcode with no activity in 10 minutes
+        try:
+            stalled_transcodes_ids = [k for k in active_transcodes if active_transcodes[k].last_active + 60*10 < round(time.time())]
+            for key in stalled_transcodes_ids:
+                logging.info("killing stalled transcode with id: " + str(key))
+                active_transcodes[key].kill()
+                active_transcodes.pop(key)
+        except KeyError:
+            # during cuncurrent requests is possible to have this block to execute cuncurrently
+            pass
+
         if get_transcode_id() in active_transcodes:
             logging.debug("killing old trascoding process: " + get_transcode_id())
             active_transcodes[get_transcode_id()].kill()
@@ -288,13 +301,16 @@ def transcode(vod_id):
         logging.debug(re.sub(r"[\[|,|\]|\']", "", str(ffmpeg_command)))
         process = subprocess.Popen(ffmpeg_command, stdout = subprocess.PIPE, stderr = subprocess.PIPE, bufsize = -1)
         active_transcodes[get_transcode_id()] = process
+        active_transcodes[get_transcode_id()].last_active = round(time.time())
         logging.debug("active transcodes: " + str(active_transcodes.keys()))
+
 
         try:
             while True:
                 line = process.stdout.read(1024)
                 buff.append(line)
 
+                active_transcodes[get_transcode_id()].last_active = round(time.time())
                 yield buff.pop(0)
 
                 process.poll()
