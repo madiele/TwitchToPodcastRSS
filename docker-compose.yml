@@ -12,9 +12,9 @@ services:
             - TZ=Europe/London
             - TWITCH_SECRET=<YOUR_SECRET>
             - TWITCH_CLIENT_ID=<YOUR_CLIENT_ID>
-            - TRANSCODE=False
+            - TRANSCODE=True
             #- TRANSCODE_SECONDS_BUFFER=120 #optional
-            #- TRANSCODE_BANDWITH_kbps=1000 #optional you max upload bandwith
+            #- TRANSCODE_BANDWITH_kbps=1000 #optional your max upload bandwith
             #- TRANSCODE_BITRATE=128000 # encodes to 128k mp3 #optional
             #- SERVER_NAME=myserver.com:80 #optional
             #- SUB_FOLDER=/ttprss #optional
