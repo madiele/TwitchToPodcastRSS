@@ -5,20 +5,18 @@ based on [twitchRSS](https://github.com/lzeke0/TwitchRSS)
 converts a twitch channel in a full-blown podcast
 <a label="example of it working with podcast addict" href="url"><img src="https://user-images.githubusercontent.com/4585690/129647659-b3bec66b-4cbb-408c-840c-9596f0c32dc2.jpg" align="left" height="400" ></a>
 ## Features:
-- completely converts the vods in a proper podcast RSS that can be listened directly inside the client (no trascoding is required if they support audio only m3u8 playback, [podcast addict](https://play.google.com/store/apps/details?id=com.bambuna.podcastaddict&hl=en_US&gl=US) is the only app I found that has support for it), no need for the twitch app
+- completely converts the vods in a proper podcast RSS that can be listened directly inside the client (you can even disable trascoding if they support audio only m3u8 playback, [podcast addict](https://play.google.com/store/apps/details?id=com.bambuna.podcastaddict&hl=en_US&gl=US) is the only app I found that has support for it), no need for the twitch app
 - the description has a clickable image that opens the vod in the twitch app
-- support for the new helix twitch API
-- the vods are not downloaded on the server, this means that the episodes are only available until they get deleted from twitch (2 weeks - 2 months in general)
-- if your app does not support m3u8 stream playback then you can enable transcoding to mp3 (note that this is resource intensive)
+- the vods are not downloaded on the server, this means that the episodes are only available until they get deleted from twitch (2 weeks - 2 months in general, depends on the creator settings)
+- vods are transcoded to mp3 192k on the fly by default, tested to be working flawlessly even on a raspberry pi 3.
 
 ## Known issues:
-- (does not apply for transcoding) first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generally done in background by the podcast clients this should not be a huge limitation, just give it time. if you only listen/watch inside the twitch app or website be sure to enable [links only mode](#only-links-mode) to make the feed generation much faster
 - when transcoding seeking to the last minute or so can be buggy, I have no idea why, help is welcome
 - to improve performance you can only have one ongoing transcoding of the same vod on the same client at once
 - when transcoding seeking around too fast can be buggy
-- downloading only works with transcoding enabled (unless the client supports m3u8 download, which is rare)
-- when playing transcoded vod's mp3 it's possible to hear audio skipping 1-2 second in time every once in a while, this is caused by the connection dropping when downloading, and due to a technical limitation can't really be fixed (twitch gives a variable bitrate stream with seek data in seconds, but the clients wants a fixed bitrate stream with seek data in bytes, when converting some rounding errors cause the audo to glitch)
-
+- when playing transcoded vod's mp3 it's possible to hear audio skipping 1-2 second in time every once in a while, this is caused by the connection dropping when downloading, and due to a technical limitation can't really be fixed (twitch gives a variable bitrate stream with seek data in seconds, but the clients wants a fixed bitrate stream with seek data in bytes, when converting some rounding errors cause the audio to glitch)
+- (only if transcoding is disabled) first time you ask for a feed it will take up to a minute or two for the request to go through, this is due to technical limitations. since updates are generally done in background by the podcast clients this should not be a huge limitation, just give it time. if you only listen/watch inside the twitch app or website be sure to enable [links only mode](#only-links-mode) to make the feed generation much faster
+- (only if transcoding is disabled) downloading only works with transcoding enabled (unless the client supports m3u8 download, which is rare)
 
 ## Donations
 this is a passion project, and mostly made for myself, but if you want to gift me a pizza margherita feel free!
