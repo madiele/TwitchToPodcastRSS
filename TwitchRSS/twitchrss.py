@@ -312,6 +312,7 @@ def transcode(vod_id):
 
                 active_transcodes[get_transcode_id()] = process
                 active_transcodes[get_transcode_id()].last_active = round(time.time())
+                yield buff.pop(0)
 
                 process.poll()
                 if isinstance(process.returncode, int):
