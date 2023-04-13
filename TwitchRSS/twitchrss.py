@@ -632,7 +632,9 @@ def construct_rss(user, vods, streams, include_streams=False, sort_by="published
                 item.link(href=link, rel="related")
                 item.description(description)
                 date = datetime.datetime.strptime(vod['created_at'], '%Y-%m-%dT%H:%M:%SZ')
-                item.podcast.itunes_duration(re.sub('[hm]', ':', vod['duration']).replace('s', ''))
+                duratio_str = re.sub('[hm]', ':', vod['duration']).replace('s', '')
+                duration_formatted = ':'.join([f'{int(i):02d}' for i in duratio_str.split(':')])
+                item.podcast.itunes_duration(duration_formatted)
                 item.podcast.itunes_author(channel_name)
                 if thumb.endswith('.jpg') or thumb.endswith('.png'):
                     item.podcast.itunes_image(thumb)
