@@ -3,7 +3,7 @@ cachetools==4.1.1
 feedgen==0.9.0
 Flask==2.0.2
 ratelimit==2.2.1
-streamlink==3.2.0
+streamlink==5.4.0
 GitPython==3.1.26
 lxml==4.7.1
 pycryptodome==3.14.1
