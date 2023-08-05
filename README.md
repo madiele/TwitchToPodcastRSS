@@ -2,6 +2,8 @@ based on [twitchRSS](https://github.com/lzeke0/TwitchRSS)
 
 # TwitchToPodcastRSS
 
+# ℹ️ Also check [vod2pod-rss](https://github.com/madiele/vod2pod-rss) a rewrite in rust that adds youtube support and modern UI for feed generation
+
 converts a twitch channel in a full-blown podcast
 <a label="example of it working with podcast addict" href="url"><img src="https://user-images.githubusercontent.com/4585690/129647659-b3bec66b-4cbb-408c-840c-9596f0c32dc2.jpg" align="left" height="400" ></a>
 ## Features:
